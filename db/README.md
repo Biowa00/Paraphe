@@ -20,10 +20,13 @@ Deux voies équivalentes :
 
 | Migration | Contenu | Appliquée ? |
 |---|---|---|
-| `0001_socle.sql` | Tables du cœur (utilisateur, entreprise, enveloppe, signataire, evenement, document_stocke, enveloppe_cle), enums, triggers I3/I6, RLS activé | ⏳ en attente du connecteur |
+| `0001_socle.sql` | Tables du cœur (utilisateur, entreprise, enveloppe, signataire, evenement, document_stocke, enveloppe_cle), enums, triggers I3/I6, RLS activé | ⏳ à lancer |
+| `0002_complement.sql` | zone_signature, membre_entreprise, membre_role, verification_identite, credit_transaction (registre en ajout seul), RLS activé | ⏳ à lancer |
 
-## À venir
+À lancer **dans l'ordre** (0001 puis 0002) dans l'éditeur SQL Supabase.
 
-- `0002` — politiques RLS (03-politiques-acces), après le modèle d'authentification.
-- Tables V2 (membre_entreprise, membre_role, modèles, facturation).
+## À venir (volontairement PAS encore écrit)
+
+- **`0003` — politiques RLS** (03-politiques-acces). **Bloqué par une décision** : le modèle d'authentification (comment un utilisateur prouve son identité à la base). Les écrire maintenant, sans ce modèle, produirait de **mauvaises règles d'accès** — pire que pas de règles. RLS est déjà **activé** (deny par défaut, donc sûr) ; les politiques viendront quand l'authentification sera câblée.
+- Tables V2 avancées (modèles de documents, facturation par siège).
 - Adaptateur Postgres de `DepotEnveloppes` (remplace le dépôt mémoire) lisant `DATABASE_URL` depuis `.env`.
