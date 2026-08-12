@@ -38,8 +38,9 @@ Ces éléments **ne bloquent pas** l'écriture de la doc, mais certains **bloque
 Construite en tranches verticales, dans cet ordre :
 
 - **S1 · Socle de confiance & preuve.** Chiffrement par enveloppe + KMS, journal en ajout seul + réplication externalisée, empreinte SHA-256, scellement + dossier de preuve + cachet serveur. *C'est la fondation ; rien de vendable sans elle.*
-  - ✅ *Amorce* : monorepo TypeScript en place ; domaine `empreinte` (SHA-256), `journal` (ajout seul, I6) et `machine à états` (I3) codés et couverts par 17 tests d'invariants (verts). `backend-de-confiance/src/domaine/`.
-  - ⏳ *Suite* : adaptateurs KMS + stockage objet WORM (chiffrement par enveloppe), cas d'usage `scellerEnveloppe`, dossier de preuve + cachet serveur.
+  - ✅ *Domaine* : `empreinte` (SHA-256), `journal` (ajout seul, I6), `machine à états` (I3).
+  - ✅ *Scellement bout en bout* : ports + adaptateurs **dev** (chiffrement par enveloppe AES-256-GCM, stockage WORM, cachet serveur Ed25519), cas d'usage `scellerEnveloppe`, dossier de preuve signé. **22 tests d'invariants verts** (dont I3, I7, WORM, crypto-shredding, vérifiabilité du cachet).
+  - ⏳ *Suite* : adaptateurs **production** (KMS réel + stockage objet S3/WORM) derrière les mêmes ports ; puis le reste de la boucle S3 (créer/envoyer/signer) et la persistance Postgres.
 - **S2 · Inscription vérifiée (niveau 2).** OTP, OCR pièce, vivacité, face-match, identifiant public, revue manuelle. *Sans émetteur vérifié, personne n'envoie.*
 - **S3 · Boucle de signature (le cœur).** Créer/envoyer une enveloppe → signature invité (OTP frais + tracé, niveaux OTP-seul/Standard/Renforcé) → scellement automatique. *La tranche qui rend le produit réel.*
 - **S4 · Vérification publique.** La page sans compte + endpoint d'ancrage. *Le levier d'acquisition ; chaque document scellé y ramène du monde.*
