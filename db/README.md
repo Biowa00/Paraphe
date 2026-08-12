@@ -20,10 +20,10 @@ Deux voies équivalentes :
 
 | Migration | Contenu | Appliquée ? |
 |---|---|---|
-| `0001_socle.sql` | Tables du cœur (utilisateur, entreprise, enveloppe, signataire, evenement, document_stocke, enveloppe_cle), enums, triggers I3/I6, RLS activé | ⏳ à lancer |
-| `0002_complement.sql` | zone_signature, membre_entreprise, membre_role, verification_identite, credit_transaction (registre en ajout seul), RLS activé | ⏳ à lancer |
+| `0001_socle.sql` | Tables du cœur (utilisateur, entreprise, enveloppe, signataire, evenement, document_stocke, enveloppe_cle), enums, triggers I3/I6, RLS activé | ✅ appliquée (12/08/2026) |
+| `0002_complement.sql` | zone_signature, membre_entreprise, membre_role, verification_identite, credit_transaction (registre en ajout seul), RLS activé | ✅ appliquée (12/08/2026) |
 
-À lancer **dans l'ordre** (0001 puis 0002) dans l'éditeur SQL Supabase.
+Les 12 tables sont en place sur le projet Supabase `dmgdosphbcfpmalfqwzf`.
 
 ## À venir (volontairement PAS encore écrit)
 
