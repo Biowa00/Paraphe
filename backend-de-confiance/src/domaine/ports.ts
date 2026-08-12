@@ -2,6 +2,8 @@
 // stockage objet, cachet serveur…) les implémentent. Le domaine dépend
 // d'abstractions, jamais d'un fournisseur concret (cf. 04_structure_rules/02).
 
+import type { EnveloppeAgg } from "./modele";
+
 export interface ResultatChiffrement {
   /** Référence de la clé au KMS (jamais la clé elle-même). */
   refCle: string;
@@ -44,6 +46,13 @@ export interface SceauServeur {
 /** Source de temps injectable (testable). */
 export interface Horloge {
   maintenant(): Date;
+}
+
+/** Dépôt de l'agrégat enveloppe (métadonnées + signataires + journal). */
+export interface DepotEnveloppes {
+  creer(agg: EnveloppeAgg): Promise<void>;
+  charger(id: string): Promise<EnveloppeAgg | null>;
+  enregistrer(agg: EnveloppeAgg): Promise<void>;
 }
 
 export type ActionOtp = "inscription" | "signature" | "connexion";

@@ -14,6 +14,7 @@ export const CODES_ERREUR = {
   NPI_DEJA_UTILISE: "npi_deja_utilise",
   VIVACITE_ECHEC: "vivacite_echec",
   TRACE_ABSENTE: "trace_absente",
+  ENVELOPPE_INTROUVABLE: "enveloppe_introuvable",
   TRANSITION_INTERDITE: "transition_interdite",
 } as const;
 

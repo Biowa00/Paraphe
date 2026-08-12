@@ -41,8 +41,9 @@ Construite en tranches verticales, dans cet ordre :
   - ✅ *Domaine* : `empreinte` (SHA-256), `journal` (ajout seul, I6), `machine à états` (I3).
   - ✅ *Scellement bout en bout* : ports + adaptateurs **dev** (chiffrement par enveloppe AES-256-GCM, stockage WORM, cachet serveur Ed25519), cas d'usage `scellerEnveloppe`, dossier de preuve signé.
   - ✅ *Signature (I1/I2)* : cas d'usage `signerEnveloppe` — OTP frais à usage unique lié à l'action (I2), tracé requis à l'instant jamais rejoué (I1), gardes de niveau d'identité / tour / état. Guichet OTP dev.
-  - **34 tests d'invariants verts** couvrant I1, I2, I3, I6, I7, WORM, crypto-shredding, vérifiabilité du cachet.
-  - ⏳ *Suite* : cas d'usage `creerEnveloppe` + `envoyerEnveloppe` + dépôt en mémoire (dev) pour exercer la boucle complète ; puis exposition HTTP (Fastify) ; adaptateurs **production** (KMS, stockage S3/WORM, Postgres) derrière les mêmes ports.
+  - ✅ *Boucle complète (local)* : `creerEnveloppe`, `envoyerEnveloppe`, `traiterSignature` + dépôt en mémoire ; scénario `créer → envoyer → signer×2 → sceller` prouvé de bout en bout (journal ordonné des 7 événements, cachet vérifiable).
+  - **44 tests d'invariants verts** (I1, I2, I3, I6, I7, WORM, crypto-shredding, tour séquentiel, cachet).
+  - ⏳ *Suite* : exposition HTTP (Fastify) sur ces cas d'usage ; puis adaptateurs **production** (KMS, stockage S3/WORM, Postgres) derrière les mêmes ports — sans toucher à la logique.
 - **S2 · Inscription vérifiée (niveau 2).** OTP, OCR pièce, vivacité, face-match, identifiant public, revue manuelle. *Sans émetteur vérifié, personne n'envoie.*
 - **S3 · Boucle de signature (le cœur).** Créer/envoyer une enveloppe → signature invité (OTP frais + tracé, niveaux OTP-seul/Standard/Renforcé) → scellement automatique. *La tranche qui rend le produit réel.*
 - **S4 · Vérification publique.** La page sans compte + endpoint d'ancrage. *Le levier d'acquisition ; chaque document scellé y ramène du monde.*
