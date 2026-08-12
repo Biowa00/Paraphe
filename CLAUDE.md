@@ -93,7 +93,7 @@ Ordre de rédaction retenu : `00 → 01 → 02 → 03 → 07 → 05 → 06 → 0
 1. ~~**Stack technique**~~ — **RÉSOLUE** : TypeScript full-stack portable (npm workspaces · Vite/React · Fastify/Node · Postgres · stockage objet WORM · KMS séparé). Détail `04_structure_rules/05-stack.md`.
 2. **Hébergement** — vérifier les obligations de localisation des données applicables au Bénin avant de fixer une région.
 3. **Prix unitaire du crédit** — dépend des entretiens PME.
-4. **Fournisseurs** — OTP/SMS, WhatsApp Business, OCR + vivacité, horodatage, Mobile Money. Arbitrer sur coût, couverture Bénin, fiabilité.
+4. **Fournisseurs** — OTP/SMS, WhatsApp Business, OCR + vivacité, horodatage, Mobile Money. Arbitrer sur coût, couverture Bénin, fiabilité. *(Voie ANIP abandonnée le 12/08/2026 → identité via KYC commercial, sans repli officiel gratuit.)*
 5. **Format de scellement** — chaîne de preuve **conçue autour de PAdES (LTV)** ; confirmation formelle subordonnée à une évaluation technique.
 6. **Support d'ancrage public quotidien** — blockchain, OpenTimestamps, dépôt notarié, presse ? Non tranché.
 7. **Tracé de référence** — le conserver (aplati, affichage seul) ou pas du tout ? Le produit marche sans ; tout stockage réutilisable frôle I1. À trancher avant implémentation (`07_database/01`).

@@ -13,6 +13,7 @@ const STATUT_PAR_CODE: Record<CodeErreur, number> = {
   createur_ne_peut_valider: 403,
   credits_insuffisants: 422,
   npi_deja_utilise: 409,
+  piece_illisible: 422,
   vivacite_echec: 422,
   trace_absente: 422,
   enveloppe_introuvable: 404,

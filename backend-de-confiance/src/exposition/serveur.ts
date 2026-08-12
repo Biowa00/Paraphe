@@ -4,6 +4,7 @@ import { creerEnveloppe } from "../cas-usage/creer-enveloppe";
 import { envoyerEnveloppe } from "../cas-usage/envoyer-enveloppe";
 import { traiterSignature } from "../cas-usage/traiter-signature";
 import { scellerEnveloppe } from "../cas-usage/sceller-enveloppe";
+import { inscrireCompteVerifie } from "../cas-usage/inscrire-compte-verifie";
 import type { DossierPreuve } from "../domaine/dossier-preuve";
 import type { Composition } from "./composition";
 import { envoyerErreur } from "./erreurs-http";
@@ -48,6 +49,14 @@ const schemaOtp = z.object({
   action: z.enum(["inscription", "signature", "connexion"]),
 });
 
+const schemaInscription = z.object({
+  telephone: z.string().min(1),
+  otpTicket: z.string().min(1),
+  // Références vers pièce/selfie chiffrés (jamais d'octets en clair ici).
+  refPiece: z.string().min(1),
+  refSelfie: z.string().min(1),
+});
+
 function requeteInvalide(reply: Parameters<typeof envoyerErreur>[0], message: string) {
   reply.status(400).send({ erreur: { code: "requete_invalide", message } });
 }
@@ -62,6 +71,33 @@ export function construireServeur(c: Composition): FastifyInstance {
     const parse = schemaOtp.safeParse(req.body);
     if (!parse.success) return requeteInvalide(reply, "Action OTP invalide.");
     return reply.send({ ticket: c.otp.emettreTicket(parse.data.action) });
+  });
+
+  app.post("/v1/inscription", async (req, reply) => {
+    const parse = schemaInscription.safeParse(req.body);
+    if (!parse.success) return requeteInvalide(reply, "Inscription invalide.");
+    try {
+      const r = await inscrireCompteVerifie(parse.data, {
+        depot: c.depotUtilisateurs,
+        otp: c.otp,
+        ocr: c.ocr,
+        biometrie: c.biometrie,
+        hacheurNpi: c.hacheurNpi,
+        horloge: c.horloge,
+        genererId: c.genererId,
+        alea: c.alea,
+      });
+      // Le NPI et les images ne sont jamais renvoyés (I4/I5).
+      return reply.status(201).send({
+        utilisateurId: r.utilisateurId,
+        niveau: r.niveau,
+        resultat: r.resultat,
+        identifiantPublic: r.identifiantPublic,
+        creditsBienvenue: r.creditsBienvenue,
+      });
+    } catch (e) {
+      return envoyerErreur(reply, e);
+    }
   });
 
   app.post("/v1/enveloppes", async (req, reply) => {

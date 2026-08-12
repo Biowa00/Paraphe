@@ -94,4 +94,33 @@ describe("API HTTP", () => {
     const r = await app.inject({ method: "GET", url: "/v1/enveloppes/inconnu" });
     expect(r.statusCode).toBe(404);
   });
+
+  it("POST /v1/inscription → compte vérifié + identifiant public + 3 crédits", async () => {
+    const otp = await app.inject({
+      method: "POST",
+      url: "/v1/otp/verifie",
+      payload: { action: "inscription" },
+    });
+    const ticket = otp.json().ticket;
+
+    const refPiece = Buffer.from(
+      JSON.stringify({ npi: "1234567890123", nom: "DOSSOU", prenoms: "Awa", coherence: "ok" }),
+    ).toString("base64url");
+    const refSelfie = Buffer.from(JSON.stringify({ vivaciteOk: true, score: 0.95 })).toString(
+      "base64url",
+    );
+
+    const r = await app.inject({
+      method: "POST",
+      url: "/v1/inscription",
+      payload: { telephone: "+22990000009", otpTicket: ticket, refPiece, refSelfie },
+    });
+    expect(r.statusCode).toBe(201);
+    const body = r.json();
+    expect(body.niveau).toBe("verifie");
+    expect(body.creditsBienvenue).toBe(3);
+    expect(body.identifiantPublic).toMatch(/^BJ-[A-Z2-9]{4}-[A-Z2-9]{3}$/);
+    // Ni NPI ni image dans la réponse (I4/I5).
+    expect(JSON.stringify(body)).not.toContain("1234567890123");
+  });
 });

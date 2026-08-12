@@ -12,6 +12,7 @@ export const CODES_ERREUR = {
   CREATEUR_NE_PEUT_VALIDER: "createur_ne_peut_valider",
   CREDITS_INSUFFISANTS: "credits_insuffisants",
   NPI_DEJA_UTILISE: "npi_deja_utilise",
+  PIECE_ILLISIBLE: "piece_illisible",
   VIVACITE_ECHEC: "vivacite_echec",
   TRACE_ABSENTE: "trace_absente",
   ENVELOPPE_INTROUVABLE: "enveloppe_introuvable",

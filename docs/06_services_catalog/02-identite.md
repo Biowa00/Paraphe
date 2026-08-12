@@ -33,7 +33,7 @@
 
 - Fournisseurs KYC/identité avec **couverture Afrique de l'Ouest** et prise en charge des pièces béninoises.
 - Solution combinée OCR + vivacité + face-match (un seul intégrateur) vs briques séparées.
-- **Plan B stratégique déjà acté** : l'accès aux services de l'**ANIP** (vérification officielle) est une démarche en cours — s'il aboutit, il renforce ou remplace le face-match, mais **la v1 ne dépend que d'OCR + selfie + OTP** (cahier §11).
+- **Décision (12 août 2026) : la voie ANIP est abandonnée.** La vérification d'identité repose donc **entièrement sur un fournisseur KYC commercial** (OCR + vivacité + face-match, **payant à la vérification**), **sans repli officiel gratuit**. La logique v1 reste conçue autour d'**OCR + selfie + OTP** (cahier §11), inchangée ; seul le poste de coût « identité » devient ferme (à trancher, décision ouverte n°4).
 
 ## Plan B / dégradation
 
