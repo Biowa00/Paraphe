@@ -53,6 +53,7 @@ Ces trois-là sont des contraintes d'entrée pour `02_logic` et `07_database`.
 |---|---|
 | Comprendre le produit, le cadrage, un terme | `docs/00_brief/` (brief, cahier, glossaire) |
 | Savoir quoi construire ensuite, situer dans le temps | `docs/ROADMAP.md` |
+| État d'avancement (fait / en cours / à faire) + historique daté — **à tenir à jour à chaque étape** | `AVANCEMENT.md` |
 | Construire une fonctionnalité (règle bout en bout, checklist) | `docs/04_structure_rules/04-cycle-fonctionnalite.md` |
 | Spécifier / modifier une fonctionnalité | `docs/01_features/` + la fiche concernée |
 | Cycle de vie enveloppe, chaîne de preuve, règles d'identité, chiffrement | `docs/02_logic/` |
