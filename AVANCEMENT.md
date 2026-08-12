@@ -1,6 +1,6 @@
 # Suivi du projet Paraphe
 
-> **Mis à jour le 12 août 2026.**
+> **Mis à jour le 12 août 2026 (soir).**
 > Ce fichier dit, en clair, **ce qui est fait**, **ce qui est en cours**, et **ce qui reste à faire**. Il est mis à jour à chaque étape. Pour l'ordre de construction détaillé, voir [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ---
@@ -14,8 +14,8 @@
 | 🌐 API (l'appli répond à des requêtes) | ✅ Fait |
 | ☁️ Sauvegarde en ligne (GitHub) | ✅ Fait |
 | 🗄️ Base de données (Supabase) | ✅ Fait (12 tables) |
-| 🔌 Brancher l'appli entière sur la base | 🔄 En cours (bloqué par « les comptes ») |
-| 👤 Comptes / inscription | ⏳ À faire (prochaine étape) |
+| 👤 Comptes / inscription vérifiée | ✅ Fait côté backend (chemin « validé », 60 tests) — écran + revue manuelle à venir |
+| 🔌 Brancher l'appli entière sur la base | ✅ Fait — boucle complète (inscrire→créer→envoyer→signer→sceller) prouvée sur Postgres |
 | 🖥️ L'écran que verront les utilisateurs | ⏳ À faire |
 | 🚀 Mise en ligne pour de vrais clients | ⏳ À faire (dépend de décisions) |
 
@@ -45,18 +45,31 @@
 - La connexion entre l'appli et la base est **vérifiée**.
 - Le code qui enregistre dans la base est écrit et **prouvé** (test aller-retour contre la vraie base, sans laisser de déchet).
 
+### 👤 Inscription vérifiée (créer un vrai compte)
+- Le parcours **téléphone + code → pièce (OCR) → selfie (vivacité + face-match) → identifiant public `BJ-XXXX-XXX` + 3 crédits de bienvenue** est codé de bout en bout côté serveur (`POST /v1/inscription`).
+- Les règles de sécurité clés sont **dans le code et testées** : le NPI n'est **jamais** stocké en clair, seulement haché (I4) ; aucune image ni donnée biométrique conservée (I5) ; impossible de créer un compte vérifié sans avoir suivi le parcours (I7) ; code à usage unique (I2).
+- Un même NPI ne peut ouvrir deux comptes actifs (unicité).
+- **Prouvé contre la vraie base** : compte + vérification + crédits enregistrés puis rechargés à l'identique (`npm run verifier:inscription`, transaction annulée, zéro déchet).
+- Les fournisseurs réels (OCR, vivacité) ne sont pas encore choisis : on tourne avec des **simulateurs** en attendant (décision ouverte n°4).
+
+### 🔌 Toute l'appli branchée sur la base
+- La boucle complète **inscrire → créer → envoyer → signer → sceller** tourne **contre la vraie base** (Supabase), pas seulement en mémoire.
+- **Prouvé de bout en bout** : `npm run verifier:boucle` (créateur vérifié réel, document scellé, journal ordonné des 5 événements, cachet vérifiable), le tout dans une transaction annulée → **zéro déchet**, même si un scellé est indestructible (I3).
+- Le serveur peut démarrer en mode base avec `PARAPHE_PERSISTENCE=postgres` (défaut : mémoire, pour le dev sans dépendance).
+
 ---
 
 ## 🔄 En cours (commencé, pas terminé)
 
-- **Brancher l'appli entière sur la base.** Le code d'enregistrement existe et marche, mais il n'est pas encore utilisé par tout le parcours, car la base **exige un créateur réel et enregistré** pour chaque document. → débloqué par « les comptes » ci-dessous.
+- **Chemins d'inscription non « validé ».** Quand le face-match est **intermédiaire**, le dossier part en **revue manuelle** (opérateur) — cette file d'attente et l'écran opérateur ne sont pas encore construits. Le tunnel en 3 écrans avec **envoi réel des photos** (et leur purge) viendra avec l'interface.
 
 ---
 
 ## ⏳ À faire
 
-### Prochaine étape
-- **👤 Comptes / inscription** (version simple d'abord) : créer de vrais utilisateurs, pour que la base accepte les documents. Débloque le branchement complet sur Postgres.
+### Prochaine étape (au choix)
+- **🔍 Page de vérification publique** (S4) : prouver publiquement qu'un document est authentique — le moteur d'acquisition, sans compte requis.
+- **🔒 Règles d'accès (RLS) + authentification** : cloisonner qui voit quoi en base, une fois un vrai mécanisme de connexion en place.
 
 ### Ensuite
 - **🔒 Règles d'accès détaillées (RLS)** dans la base — une fois qu'on sait comment un utilisateur prouve son identité.
@@ -74,7 +87,7 @@
 - Prix d'un crédit · support de l'ancrage public · confirmation du format PAdES · sort du « tracé de référence ».
 
 ### 📋 Démarches (en parallèle, hors code)
-- ANIP (vérification d'identité), ASIN (registre), **APDP (bloquant avant mise en ligne)**, avis d'un avocat, 10 entretiens PME (guide prêt : `docs/00_brief/GUIDE-ENTRETIEN-PME.md`).
+- ~~ANIP~~ **abandonné (12/08/2026)** → identité via fournisseur KYC commercial. ASIN (registre), **APDP (bloquant avant mise en ligne)**, avis d'un avocat, 10 entretiens PME (guide prêt : `docs/00_brief/GUIDE-ENTRETIEN-PME.md`).
 
 ---
 
@@ -89,5 +102,17 @@
 - Dépôt GitHub créé et code poussé (`Biowa00/Paraphe`).
 - Base Supabase : 12 tables créées (migrations `0001`, `0002`), puis ordre des événements (`0003`).
 - Connexion appli ↔ base vérifiée ; adaptateur Postgres écrit et prouvé par aller-retour.
+
+### 12 août 2026 (soir) — inscription vérifiée (backend)
+- Parcours d'inscription vérifiée codé de bout en bout : OTP → OCR pièce → vivacité/face-match → identifiant public `BJ-XXXX-XXX` → 3 crédits de bienvenue.
+- Invariants gravés et testés : NPI haché jamais en clair (I4), aucune image/biométrie conservée (I5), pas de compte vérifié sans parcours (I7), code à usage unique (I2), unicité du NPI.
+- Adaptateurs simulés pour OCR/vivacité (fournisseurs réels = décision ouverte n°4) ; hachage NPI = HMAC-SHA256 + pepper.
+- Route `POST /v1/inscription` ajoutée. **60 tests verts** (+11).
+- Prouvé contre la vraie base : `npm run verifier:inscription` (compte + vérif + 3 crédits, rechargés identiques, transaction annulée).
+
+### 12 août 2026 (soir) — toute la boucle branchée sur Postgres
+- Dépôts « liés à un client » (enveloppes + utilisateurs) pour enchaîner plusieurs opérations dans une seule transaction.
+- `compositionPostgres()` + interrupteur `PARAPHE_PERSISTENCE=postgres` (le serveur peut tourner sur la vraie base).
+- Boucle complète **inscrire → créer → envoyer → signer → sceller** prouvée contre la vraie base : `npm run verifier:boucle` (journal ordonné des 5 événements, cachet vérifiable, transaction annulée, zéro déchet). 60 tests toujours verts.
 
 *(Les prochaines dates s'ajouteront ici au fil de l'eau.)*

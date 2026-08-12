@@ -21,7 +21,7 @@ Ces éléments **ne bloquent pas** l'écriture de la doc, mais certains **bloque
 
 | Action | Interlocuteur | Nature |
 |---|---|---|
-| Convention d'accès à la vérification d'identité | ANIP | Conditionne l'archi d'identification (plan B v1 : OCR+selfie+OTP) |
+| ~~Convention d'accès ANIP~~ — **abandonnée (12/08/2026)** | ANIP | Vérification d'identité via **fournisseur KYC commercial** ; logique v1 (OCR+selfie+OTP) inchangée |
 | Registre des prestataires de confiance agréés | ASIN | Renseignement |
 | Déclaration/autorisation de traitement | APDP | **Bloquante avant prod** |
 | Avis d'un avocat béninois sur un cas type de dossier de preuve | Conseil juridique | Réduit le risque contentieux |
@@ -45,8 +45,12 @@ Construite en tranches verticales, dans cet ordre :
   - ✅ *Exposition HTTP (Fastify)* : routes `POST /v1/enveloppes`, `/envoi`, `/signature` (scellement auto au dernier signataire), `GET /v1/enveloppes/:id`, `/v1/sante`, OTP dev. Validation Zod, mapping code métier → statut HTTP. Serveur lançable en local (`npm run dev`), boucle vérifiée en curl réel.
   - **49 tests verts** (dont 5 d'API via `inject`).
   - ✅ *Persistance Postgres* : base Supabase branchée (`.env`, `DATABASE_URL`) ; migration `0003` (ordre des événements) appliquée ; adaptateur `DepotEnveloppesPostgres` écrit et **prouvé par un aller-retour contre la vraie base** (créer → recharger, transaction annulée, zéro résidu).
-  - ⏳ *Suite* : **S2 inscription** (créer de vrais `utilisateur`) — nécessaire pour faire tourner toute l'appli sur Postgres (les enveloppes exigent un créateur réel, FK) ; puis politiques **RLS** (migration `0003`→`0004`) une fois l'authentification en place ; adaptateurs KMS/stockage S3 en production.
+  - ✅ *Boucle branchée sur Postgres* : `compositionPostgres()` + interrupteur `PARAPHE_PERSISTENCE=postgres` ; boucle complète (inscrire→créer→envoyer→signer→sceller) **prouvée contre la vraie base** (`npm run verifier:boucle`), dans une transaction annulée (zéro déchet).
+  - ⏳ *Suite* : politiques **RLS** (migration `0003`→`0004`) une fois l'authentification en place ; adaptateurs KMS/stockage S3 en production.
 - **S2 · Inscription vérifiée (niveau 2).** OTP, OCR pièce, vivacité, face-match, identifiant public, revue manuelle. *Sans émetteur vérifié, personne n'envoie.*
+  - ✅ *Chemin « validé » bout en bout (backend)* : cas d'usage `inscrireCompteVerifie` — OTP frais consommé (I2/I7), OCR (port + adaptateur dev), vivacité + face-match (port + adaptateur dev), **NPI haché HMAC+pepper jamais en clair (I4)** + unicité, **aucune image/biométrie conservée (I5)**, identifiant public `BJ-XXXX-XXX`, 3 crédits de bienvenue. Ports `HacheurNpi`/`ServiceOcrPiece`/`ServiceBiometrie`/`DepotUtilisateurs` ; dépôts mémoire + **Postgres (transaction atomique compte+vérif+crédits)**.
+  - ✅ *Exposition HTTP* : `POST /v1/inscription`. **60 tests verts** ; aller-retour prouvé contre la vraie base (`npm run verifier:inscription`).
+  - ⏳ *Suite* : file de **revue manuelle** opérateur (scores intermédiaires → `en_revue`, chemin interne `03_rbac`) ; tunnel 3 écrans multipart avec **envoi + purge réels des images (I5)** ; branchement des fournisseurs réels OCR/vivacité/OTP (décision ouverte n°4) ; hacheur NPI adossé au **KMS** (pepper hors process).
 - **S3 · Boucle de signature (le cœur).** Créer/envoyer une enveloppe → signature invité (OTP frais + tracé, niveaux OTP-seul/Standard/Renforcé) → scellement automatique. *La tranche qui rend le produit réel.*
 - **S4 · Vérification publique.** La page sans compte + endpoint d'ancrage. *Le levier d'acquisition ; chaque document scellé y ramène du monde.*
 - **S5 · Crédits Mobile Money.** Solde, packs, 3 crédits de bienvenue non expirants, webhook idempotent. *L'encaissement.*

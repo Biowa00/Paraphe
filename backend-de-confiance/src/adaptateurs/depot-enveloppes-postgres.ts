@@ -106,6 +106,38 @@ export async function insererEnveloppeAgg(db: Db, agg: EnveloppeAgg): Promise<vo
   }
 }
 
+/**
+ * Réenregistre un agrégat existant : maj des scalaires (le trigger refuse si
+ * déjà scellée — I3), maj des signataires, et ajout des seuls événements
+ * nouveaux au journal (ajout seul, ordre préservé). Accepte un client ou un pool
+ * pour pouvoir participer à une transaction externe.
+ */
+export async function enregistrerEnveloppeAgg(db: Db, agg: EnveloppeAgg): Promise<void> {
+  const e = agg.enveloppe;
+
+  await db.query(
+    `update enveloppe set statut = $2, document_hash_origine = $3, date_scellement = $4 where id = $1`,
+    [e.id, e.statut, e.documentHashOrigine, e.dateScellement],
+  );
+
+  for (const s of agg.signataires) {
+    await db.query(
+      `update signataire set statut = $2, date_signature = $3 where id = $1`,
+      [s.id, s.statut, s.dateSignature],
+    );
+  }
+
+  const compte = await db.query<{ n: number }>(
+    `select count(*)::int as n from evenement where enveloppe_id = $1`,
+    [e.id],
+  );
+  const dejaEnBase = compte.rows[0]?.n ?? 0;
+  const evenements = agg.journal.lister();
+  for (let i = dejaEnBase; i < evenements.length; i++) {
+    await insererEvenement(db, evenements[i]!);
+  }
+}
+
 export async function chargerEnveloppeAgg(db: Db, id: string): Promise<EnveloppeAgg | null> {
   const re = await db.query(`select * from enveloppe where id = $1`, [id]);
   if (re.rowCount === 0) return null;
@@ -153,33 +185,7 @@ export class DepotEnveloppesPostgres implements DepotEnveloppes {
     const client = await this.#pool.connect();
     try {
       await client.query("begin");
-      const e = agg.enveloppe;
-
-      // Maj des scalaires de l'enveloppe (le trigger refuse si déjà scellée — I3).
-      await client.query(
-        `update enveloppe set statut = $2, document_hash_origine = $3, date_scellement = $4 where id = $1`,
-        [e.id, e.statut, e.documentHashOrigine, e.dateScellement],
-      );
-
-      for (const s of agg.signataires) {
-        await client.query(
-          `update signataire set statut = $2, date_signature = $3 where id = $1`,
-          [s.id, s.statut, s.dateSignature],
-        );
-      }
-
-      // Journal en ajout seul : on insère uniquement les événements nouveaux
-      // (au-delà de ceux déjà présents en base). L'ordre est préservé (seq).
-      const compte = await client.query<{ n: number }>(
-        `select count(*)::int as n from evenement where enveloppe_id = $1`,
-        [e.id],
-      );
-      const dejaEnBase = compte.rows[0]?.n ?? 0;
-      const evenements = agg.journal.lister();
-      for (let i = dejaEnBase; i < evenements.length; i++) {
-        await insererEvenement(client, evenements[i]!);
-      }
-
+      await enregistrerEnveloppeAgg(client, agg);
       await client.query("commit");
     } catch (erreur) {
       await client.query("rollback");
@@ -187,5 +193,31 @@ export class DepotEnveloppesPostgres implements DepotEnveloppes {
     } finally {
       client.release();
     }
+  }
+}
+
+/**
+ * Dépôt enveloppes lié à UN client (aucune gestion de transaction) : la
+ * transaction est ouverte/validée/annulée par l'appelant. Sert aux scénarios
+ * qui doivent enchaîner plusieurs opérations atomiquement (ex. preuve de la
+ * boucle complète, annulée par rollback).
+ */
+export class DepotEnveloppesSurClient implements DepotEnveloppes {
+  readonly #db: Db;
+
+  constructor(db: Db) {
+    this.#db = db;
+  }
+
+  async creer(agg: EnveloppeAgg): Promise<void> {
+    await insererEnveloppeAgg(this.#db, agg);
+  }
+
+  async charger(id: string): Promise<EnveloppeAgg | null> {
+    return chargerEnveloppeAgg(this.#db, id);
+  }
+
+  async enregistrer(agg: EnveloppeAgg): Promise<void> {
+    await enregistrerEnveloppeAgg(this.#db, agg);
   }
 }
