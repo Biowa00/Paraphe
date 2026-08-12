@@ -45,3 +45,14 @@ export interface SceauServeur {
 export interface Horloge {
   maintenant(): Date;
 }
+
+export type ActionOtp = "inscription" | "signature" | "connexion";
+
+/**
+ * Guichet OTP. `consommerTicket` valide et CONSOMME un ticket frais lié à une
+ * action précise : à usage unique (I2). Un ticket rejoué, expiré ou destiné à
+ * une autre action est rejeté.
+ */
+export interface ServiceOtp {
+  consommerTicket(ticket: string, action: ActionOtp): Promise<void>;
+}

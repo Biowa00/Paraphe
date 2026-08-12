@@ -13,6 +13,7 @@ export const CODES_ERREUR = {
   CREDITS_INSUFFISANTS: "credits_insuffisants",
   NPI_DEJA_UTILISE: "npi_deja_utilise",
   VIVACITE_ECHEC: "vivacite_echec",
+  TRACE_ABSENTE: "trace_absente",
   TRANSITION_INTERDITE: "transition_interdite",
 } as const;
 
