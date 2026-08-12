@@ -42,8 +42,9 @@ Construite en tranches verticales, dans cet ordre :
   - ✅ *Scellement bout en bout* : ports + adaptateurs **dev** (chiffrement par enveloppe AES-256-GCM, stockage WORM, cachet serveur Ed25519), cas d'usage `scellerEnveloppe`, dossier de preuve signé.
   - ✅ *Signature (I1/I2)* : cas d'usage `signerEnveloppe` — OTP frais à usage unique lié à l'action (I2), tracé requis à l'instant jamais rejoué (I1), gardes de niveau d'identité / tour / état. Guichet OTP dev.
   - ✅ *Boucle complète (local)* : `creerEnveloppe`, `envoyerEnveloppe`, `traiterSignature` + dépôt en mémoire ; scénario `créer → envoyer → signer×2 → sceller` prouvé de bout en bout (journal ordonné des 7 événements, cachet vérifiable).
-  - **44 tests d'invariants verts** (I1, I2, I3, I6, I7, WORM, crypto-shredding, tour séquentiel, cachet).
-  - ⏳ *Suite* : exposition HTTP (Fastify) sur ces cas d'usage ; puis adaptateurs **production** (KMS, stockage S3/WORM, Postgres) derrière les mêmes ports — sans toucher à la logique.
+  - ✅ *Exposition HTTP (Fastify)* : routes `POST /v1/enveloppes`, `/envoi`, `/signature` (scellement auto au dernier signataire), `GET /v1/enveloppes/:id`, `/v1/sante`, OTP dev. Validation Zod, mapping code métier → statut HTTP. Serveur lançable en local (`npm run dev`), boucle vérifiée en curl réel.
+  - **49 tests verts** (dont 5 d'API via `inject`).
+  - ⏳ *Suite* : adaptateurs **production** (KMS, stockage S3/WORM, Postgres/RLS) derrière les mêmes ports ; authentification (session + jeton d'enveloppe) ; puis S2 inscription et S4 vérification publique.
 - **S2 · Inscription vérifiée (niveau 2).** OTP, OCR pièce, vivacité, face-match, identifiant public, revue manuelle. *Sans émetteur vérifié, personne n'envoie.*
 - **S3 · Boucle de signature (le cœur).** Créer/envoyer une enveloppe → signature invité (OTP frais + tracé, niveaux OTP-seul/Standard/Renforcé) → scellement automatique. *La tranche qui rend le produit réel.*
 - **S4 · Vérification publique.** La page sans compte + endpoint d'ancrage. *Le levier d'acquisition ; chaque document scellé y ramène du monde.*
