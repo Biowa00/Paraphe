@@ -44,7 +44,8 @@ Construite en tranches verticales, dans cet ordre :
   - ✅ *Boucle complète (local)* : `creerEnveloppe`, `envoyerEnveloppe`, `traiterSignature` + dépôt en mémoire ; scénario `créer → envoyer → signer×2 → sceller` prouvé de bout en bout (journal ordonné des 7 événements, cachet vérifiable).
   - ✅ *Exposition HTTP (Fastify)* : routes `POST /v1/enveloppes`, `/envoi`, `/signature` (scellement auto au dernier signataire), `GET /v1/enveloppes/:id`, `/v1/sante`, OTP dev. Validation Zod, mapping code métier → statut HTTP. Serveur lançable en local (`npm run dev`), boucle vérifiée en curl réel.
   - **49 tests verts** (dont 5 d'API via `inject`).
-  - ⏳ *Suite* : adaptateurs **production** (KMS, stockage S3/WORM, Postgres/RLS) derrière les mêmes ports ; authentification (session + jeton d'enveloppe) ; puis S2 inscription et S4 vérification publique.
+  - ✅ *Persistance Postgres* : base Supabase branchée (`.env`, `DATABASE_URL`) ; migration `0003` (ordre des événements) appliquée ; adaptateur `DepotEnveloppesPostgres` écrit et **prouvé par un aller-retour contre la vraie base** (créer → recharger, transaction annulée, zéro résidu).
+  - ⏳ *Suite* : **S2 inscription** (créer de vrais `utilisateur`) — nécessaire pour faire tourner toute l'appli sur Postgres (les enveloppes exigent un créateur réel, FK) ; puis politiques **RLS** (migration `0003`→`0004`) une fois l'authentification en place ; adaptateurs KMS/stockage S3 en production.
 - **S2 · Inscription vérifiée (niveau 2).** OTP, OCR pièce, vivacité, face-match, identifiant public, revue manuelle. *Sans émetteur vérifié, personne n'envoie.*
 - **S3 · Boucle de signature (le cœur).** Créer/envoyer une enveloppe → signature invité (OTP frais + tracé, niveaux OTP-seul/Standard/Renforcé) → scellement automatique. *La tranche qui rend le produit réel.*
 - **S4 · Vérification publique.** La page sans compte + endpoint d'ancrage. *Le levier d'acquisition ; chaque document scellé y ramène du monde.*

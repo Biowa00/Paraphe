@@ -22,8 +22,10 @@ Deux voies équivalentes :
 |---|---|---|
 | `0001_socle.sql` | Tables du cœur (utilisateur, entreprise, enveloppe, signataire, evenement, document_stocke, enveloppe_cle), enums, triggers I3/I6, RLS activé | ✅ appliquée (12/08/2026) |
 | `0002_complement.sql` | zone_signature, membre_entreprise, membre_role, verification_identite, credit_transaction (registre en ajout seul), RLS activé | ✅ appliquée (12/08/2026) |
+| `0003_ordre_evenement.sql` | Colonne d'ordre stable `seq` sur `evenement` (reconstitution fidèle du journal) | ✅ appliquée (12/08/2026) |
 
-Les 12 tables sont en place sur le projet Supabase `dmgdosphbcfpmalfqwzf`.
+Les 12 tables sont en place sur le projet Supabase pointé par `DATABASE_URL` (`.env`).
+Migrations applicables via `tsx src/scripts/appliquer-migration.ts <fichier.sql>` depuis `backend-de-confiance/` (utilise `DATABASE_URL`).
 
 ## À venir (volontairement PAS encore écrit)
 
