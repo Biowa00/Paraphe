@@ -6,6 +6,12 @@ import { traiterSignature } from "../cas-usage/traiter-signature";
 import { scellerEnveloppe } from "../cas-usage/sceller-enveloppe";
 import { inscrireCompteVerifie } from "../cas-usage/inscrire-compte-verifie";
 import { verifierDocument } from "../cas-usage/verifier-document";
+import {
+  consulterSolde,
+  listerPacks,
+  acheterCredits,
+  confirmerPaiement,
+} from "../cas-usage/credits";
 import type { DossierPreuve } from "../domaine/dossier-preuve";
 import type { Composition } from "./composition";
 import { envoyerErreur } from "./erreurs-http";
@@ -59,6 +65,18 @@ const schemaVerification = z
     message: "Fournir un document ou une référence d'enveloppe.",
   });
 
+const TITULAIRE = z.enum(["utilisateur", "entreprise"]);
+const schemaAchat = z.object({
+  titulaireType: TITULAIRE,
+  titulaireId: z.string().min(1),
+  packId: z.string().min(1),
+  telephone: z.string().min(1),
+});
+const schemaCallback = z.object({
+  reference: z.string().min(1),
+  succes: z.boolean(),
+});
+
 const schemaInscription = z.object({
   telephone: z.string().min(1),
   otpTicket: z.string().min(1),
@@ -95,6 +113,45 @@ export function construireServeur(c: Composition): FastifyInstance {
     } catch (e) {
       return envoyerErreur(reply, e);
     }
+  });
+
+  // ─── Crédits (l'émetteur paie ; le destinataire jamais — I8) ───
+  app.get("/v1/credits/packs", async () => ({ packs: listerPacks() }));
+
+  app.get("/v1/credits/solde", async (req, reply) => {
+    const q = req.query as { titulaireType?: string; titulaireId?: string };
+    const parse = z
+      .object({ titulaireType: TITULAIRE, titulaireId: z.string().min(1) })
+      .safeParse(q);
+    if (!parse.success) return requeteInvalide(reply, "Titulaire requis.");
+    const solde = await consulterSolde(
+      { type: parse.data.titulaireType, id: parse.data.titulaireId },
+      { depot: c.depotCredits },
+    );
+    return reply.send(solde);
+  });
+
+  app.post("/v1/credits/achat", async (req, reply) => {
+    const parse = schemaAchat.safeParse(req.body);
+    if (!parse.success) return requeteInvalide(reply, "Achat invalide.");
+    try {
+      const r = await acheterCredits(parse.data, {
+        depotPaiements: c.depotPaiements,
+        operateur: c.operateurMM,
+        genererId: c.genererId,
+      });
+      return reply.send(r);
+    } catch (e) {
+      return envoyerErreur(reply, e);
+    }
+  });
+
+  // Webhook opérateur : confirme (ou échoue) un paiement, idempotent.
+  app.post("/v1/credits/mobile-money/callback", async (req, reply) => {
+    const parse = schemaCallback.safeParse(req.body);
+    if (!parse.success) return requeteInvalide(reply, "Callback invalide.");
+    const r = await confirmerPaiement(parse.data, { depotPaiements: c.depotPaiements });
+    return reply.send(r);
   });
 
   app.post("/v1/inscription", async (req, reply) => {

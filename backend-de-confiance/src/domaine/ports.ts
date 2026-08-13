@@ -5,6 +5,7 @@
 import type { NiveauIdentite, StatutEnveloppe } from "@paraphe/partage";
 import type { EnveloppeAgg } from "./modele";
 import type { CompteVerifieAgg } from "./utilisateur";
+import type { Paiement, TitulaireType, TransactionCredit } from "./credits";
 
 export interface ResultatChiffrement {
   /** Référence de la clé au KMS (jamais la clé elle-même). */
@@ -143,6 +144,52 @@ export interface EnveloppeVerifiable {
 export interface DepotVerification {
   parRef(ref: string): Promise<EnveloppeVerifiable | null>;
   parEmpreinte(empreinte: string): Promise<EnveloppeVerifiable | null>;
+}
+
+// ─── Crédits & paiements (Mobile Money) ───────────────────────
+
+/** Solde d'un titulaire = somme du registre (ajout seul), détaillé par type. */
+export interface Solde {
+  solde: number;
+  dontBienvenue: number;
+}
+
+export interface DepotCredits {
+  solde(type: TitulaireType, id: string): Promise<Solde>;
+  enregistrer(tx: TransactionCredit): Promise<void>;
+}
+
+/** Résultat de la confirmation d'un paiement (idempotente). */
+export interface ResultatConfirmation {
+  /** Vrai si CE webhook a effectivement crédité (faux = déjà traité). */
+  credite: boolean;
+  quantite: number;
+}
+
+export interface DepotPaiements {
+  creer(p: Paiement): Promise<void>;
+  parReference(reference: string): Promise<Paiement | null>;
+  /**
+   * Confirme un paiement et crédite le solde EN UNE TRANSACTION, de façon
+   * idempotente : un second appel avec la même référence ne crédite pas deux
+   * fois (05_api_contracts/05).
+   */
+  confirmer(reference: string, succes: boolean): Promise<ResultatConfirmation>;
+}
+
+/** Instructions de paiement rendues à l'acheteur. */
+export interface InstructionsPaiement {
+  reference: string;
+  instructions: string;
+}
+
+/**
+ * Opérateur Mobile Money. Initie une demande de paiement et renvoie des
+ * instructions + une référence. Le fournisseur réel (MTN/Moov) est une décision
+ * ouverte (n°4) ; en dev, un adaptateur simulé.
+ */
+export interface OperateurMobileMoney {
+  initier(montant: number, devise: string, telephone: string): Promise<InstructionsPaiement>;
 }
 
 /** Dépôt des comptes utilisateurs et de leur vérification d'identité. */

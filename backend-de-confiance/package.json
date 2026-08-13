@@ -11,6 +11,7 @@
     "verifier:inscription": "tsx src/scripts/verifier-inscription-postgres.ts",
     "verifier:boucle": "tsx src/scripts/verifier-boucle-postgres.ts",
     "verifier:verification": "tsx src/scripts/verifier-verification-postgres.ts",
+    "verifier:credits": "tsx src/scripts/verifier-credits-postgres.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

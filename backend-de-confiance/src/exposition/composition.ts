@@ -14,10 +14,16 @@ import { HorlogeSysteme } from "../adaptateurs/horloge-systeme";
 import { HacheurNpiLocalDev } from "../adaptateurs/hacheur-npi-local-dev";
 import { OcrPieceLocalDev } from "../adaptateurs/ocr-piece-local-dev";
 import { BiometrieLocalDev } from "../adaptateurs/biometrie-local-dev";
+import { OperateurMobileMoneyLocalDev } from "../adaptateurs/operateur-mobile-money-local-dev";
+import { DepotCreditsMemoire, DepotPaiementsMemoire } from "../adaptateurs/depot-credits-memoire";
+import { DepotCreditsPostgres, DepotPaiementsPostgres } from "../adaptateurs/depot-credits-postgres";
 import type {
+  DepotCredits,
   DepotEnveloppes,
+  DepotPaiements,
   DepotUtilisateurs,
   DepotVerification,
+  OperateurMobileMoney,
 } from "../domaine/ports";
 
 /**
@@ -29,6 +35,9 @@ export interface Composition {
   depot: DepotEnveloppes;
   depotUtilisateurs: DepotUtilisateurs;
   depotVerification: DepotVerification;
+  depotCredits: DepotCredits;
+  depotPaiements: DepotPaiements;
+  operateurMM: OperateurMobileMoney;
   otp: GuichetOtpLocalDev;
   chiffreur: ChiffreurLocalDev;
   stockage: StockageLocalDev;
@@ -54,6 +63,7 @@ function servicesCommuns() {
     hacheurNpi: new HacheurNpiLocalDev(),
     ocr: new OcrPieceLocalDev(),
     biometrie: new BiometrieLocalDev(),
+    operateurMM: new OperateurMobileMoneyLocalDev(),
     horloge: new HorlogeSysteme(),
     genererId: () => randomUUID(),
     alea: () => randomInt(0, 2 ** 31),
@@ -66,10 +76,13 @@ export function compositionDev(): Composition {
   // Une seule instance mémoire sert le dépôt d'écriture ET la vérification :
   // la page publique voit les enveloppes réellement scellées par le serveur.
   const enveloppes = new DepotEnveloppesMemoire();
+  const credits = new DepotCreditsMemoire();
   return {
     depot: enveloppes,
     depotVerification: enveloppes,
     depotUtilisateurs: new DepotUtilisateursMemoire(),
+    depotCredits: credits,
+    depotPaiements: new DepotPaiementsMemoire(credits),
     ...servicesCommuns(),
   };
 }
@@ -91,6 +104,8 @@ export function compositionPostgres(pool?: Pool): Composition {
     depot: new DepotEnveloppesPostgres(p),
     depotUtilisateurs: new DepotUtilisateursPostgres(p),
     depotVerification: new DepotVerificationPostgres(p),
+    depotCredits: new DepotCreditsPostgres(p),
+    depotPaiements: new DepotPaiementsPostgres(p),
     ...servicesCommuns(),
   };
 }

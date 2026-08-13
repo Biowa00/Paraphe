@@ -142,6 +142,47 @@ describe("API HTTP", () => {
     expect(vide.statusCode).toBe(400);
   });
 
+  it("crédits : achat → webhook → solde ; double webhook n'ajoute rien", async () => {
+    const titulaire = { titulaireType: "utilisateur", titulaireId: "u-credits" };
+
+    const packs = await app.inject({ method: "GET", url: "/v1/credits/packs" });
+    expect(packs.json().packs.length).toBeGreaterThan(0);
+
+    const achat = await app.inject({
+      method: "POST",
+      url: "/v1/credits/achat",
+      payload: { ...titulaire, packId: "decouverte", telephone: "+22990000001" },
+    });
+    expect(achat.json().statut).toBe("en_attente");
+    const reference = achat.json().transactionId;
+
+    // Avant confirmation : solde nul.
+    const avant = await app.inject({
+      method: "GET",
+      url: `/v1/credits/solde?titulaireType=utilisateur&titulaireId=u-credits`,
+    });
+    expect(avant.json().solde).toBe(0);
+
+    // Webhook succès → crédité.
+    await app.inject({
+      method: "POST",
+      url: "/v1/credits/mobile-money/callback",
+      payload: { reference, succes: true },
+    });
+    // Double notification → pas de double crédit.
+    await app.inject({
+      method: "POST",
+      url: "/v1/credits/mobile-money/callback",
+      payload: { reference, succes: true },
+    });
+
+    const apres = await app.inject({
+      method: "GET",
+      url: `/v1/credits/solde?titulaireType=utilisateur&titulaireId=u-credits`,
+    });
+    expect(apres.json().solde).toBe(10);
+  });
+
   it("POST /v1/inscription → compte vérifié + identifiant public + 3 crédits", async () => {
     const otp = await app.inject({
       method: "POST",
