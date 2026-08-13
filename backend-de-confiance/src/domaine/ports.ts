@@ -2,9 +2,9 @@
 // stockage objet, cachet serveur…) les implémentent. Le domaine dépend
 // d'abstractions, jamais d'un fournisseur concret (cf. 04_structure_rules/02).
 
-import type { NiveauIdentite, StatutEnveloppe } from "@paraphe/partage";
+import type { NiveauIdentite, NiveauVerification, StatutEnveloppe } from "@paraphe/partage";
 import type { EnveloppeAgg } from "./modele";
-import type { CompteVerifieAgg } from "./utilisateur";
+import type { CompteVerifieAgg, Utilisateur } from "./utilisateur";
 import type { Paiement, TitulaireType, TransactionCredit } from "./credits";
 
 export interface ResultatChiffrement {
@@ -205,4 +205,26 @@ export interface DepotUtilisateurs {
   /** Insère compte + vérification + crédits de bienvenue en une transaction. */
   creerCompteVerifie(agg: CompteVerifieAgg): Promise<void>;
   charger(id: string): Promise<CompteVerifieAgg | null>;
+  /** Retrouve un compte par son téléphone (pour la connexion). */
+  parTelephone(telephone: string): Promise<Utilisateur | null>;
+}
+
+// ─── Session (connexion) ──────────────────────────────────────
+
+export interface SessionPayload {
+  /** Identifiant de l'utilisateur connecté. */
+  sub: string;
+  niveau: NiveauVerification;
+  identifiantPublic: string | null;
+}
+
+/**
+ * Jeton de session signé par le backend de confiance (téléphone + OTP →
+ * session). Le secret vit hors code (env dev → KMS en prod). Aucun secret côté
+ * client : le client ne fait que porter le jeton (04_structure_rules/05).
+ */
+export interface ServiceSession {
+  emettre(payload: SessionPayload): string;
+  /** Renvoie la charge utile si le jeton est valide et non expiré, sinon null. */
+  verifier(token: string): SessionPayload | null;
 }

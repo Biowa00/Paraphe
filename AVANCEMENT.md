@@ -10,7 +10,7 @@
 | Domaine | État |
 |---|---|
 | 📋 Conception (le plan complet) | ✅ Fait |
-| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 86 tests) |
+| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 92 tests) |
 | 🌐 API (l'appli répond à des requêtes) | ✅ Fait |
 | ☁️ Sauvegarde en ligne (GitHub) | ✅ Fait |
 | 🗄️ Base de données (Supabase) | ✅ Fait (12 tables) |
@@ -19,6 +19,7 @@
 | 🔍 Vérification publique (authentique ou altéré ?) | ✅ Fait — backend + **premier écran** (page publique) |
 | ✍️ Tunnel de signature invité (écran) | ✅ Fait côté écran — tracé + OTP (simulé) → scellement |
 | 💳 Crédits Mobile Money (recharge, solde, conso) | ✅ Fait côté backend — achat, webhook idempotent, débit à l'envoi (paiement simulé) |
+| 🔑 Connexion (qui est authentifié) | ✅ Fait côté backend — téléphone + OTP → session ; émission réservée aux comptes vérifiés |
 | 🖥️ L'écran que verront les utilisateurs | 🔄 Commencé — vérification + signature ; le reste à venir |
 | 🚀 Mise en ligne pour de vrais clients | ⏳ À faire (dépend de décisions) |
 
@@ -73,6 +74,14 @@
 - Branché sur le vrai backend (`POST /v1/verification`, proxy dev). **Observé de bout en bout** : document authentique → intègre ; document trafiqué → « modifié après signature ». Build de prod OK (~48 kB gzip), 6 tests front.
 - Pour le voir : `npm run dev -w @paraphe/backend-de-confiance` (un terminal) + `npm run dev -w @paraphe/client` (un autre) → http://localhost:5173.
 
+### 🔑 Connexion & autorisation (backend)
+- **Se connecter** par **téléphone + code OTP frais** (I2) → le backend de confiance délivre un **jeton de session signé** (HS256 ; secret en env dev → KMS en prod). `POST /v1/connexion`.
+- **Émission protégée** : créer/envoyer une enveloppe exige une **session valide** ; seul un compte **vérifié** peut émettre (I7). Le créateur est **l'utilisateur connecté** (jamais un champ du corps). Les crédits (solde/achat) sont ceux du connecté. Les invités (signature) restent **sans compte** (I8).
+- **Aucun secret côté client** : le client ne fait que porter le jeton (frontière de confiance).
+- Décision : **pas Supabase Auth**, on reste portable (relocalisation Bénin = décision n°2). L'**isolation en base (RLS en dur)** est reportée (nécessite un rôle DB restreint) — l'autorisation est portée par le backend pour l'instant.
+- Prouvé contre la vraie base : `npm run verifier:connexion` (inscription → connexion → jeton vérifiable ; numéro inconnu refusé).
+- Correctif au passage : en mode mémoire (dev), les **crédits de bienvenue** alimentent désormais le **registre partagé** (comme en Postgres) → ils sont dépensables à l'envoi.
+
 ### 💳 Crédits Mobile Money — recharge & solde (backend)
 - **Registre en ajout seul** : le solde est la **somme** des lignes (bienvenue + achat + consommation), jamais un compteur qu'on écrase.
 - Parcours : choisir un **pack** → **achat** (instructions de paiement) → **webhook** de confirmation → solde crédité. `GET /v1/credits/solde`, `GET /v1/credits/packs`, `POST /v1/credits/achat`, `POST /v1/credits/mobile-money/callback`.
@@ -101,9 +110,9 @@
 ## ⏳ À faire
 
 ### Prochaine étape (au choix)
-- **🔒 Règles d'accès (RLS) + authentification** : cloisonner qui voit quoi en base — prérequis de S6 et de la mise en prod.
-- **📁 Archive personnelle** (S6) : retrouver ses documents + télécharger le dossier de preuve (a besoin de la connexion/RLS).
-- **🖥️ Écrans émetteur** : créer/envoyer une enveloppe, recharger son solde, tableau de bord.
+- **🖥️ Écrans émetteur** : connexion + créer/envoyer une enveloppe + recharger son solde (la connexion backend est prête).
+- **📁 Archive personnelle** (S6) : lister ses documents + télécharger le dossier de preuve (la connexion permet de cloisonner).
+- **🔒 RLS en dur** (durcissement) : isolation au niveau base avec un rôle DB restreint.
 
 ### Ensuite
 - **📁 Archive personnelle** (retrouver ses documents signés).
@@ -166,6 +175,12 @@
 - Opérateur Mobile Money **simulé** (réel = décision n°4) ; prix des packs = placeholder.
 - 4 endpoints crédits. **84 tests verts** (+8). Prouvé contre la vraie base (`npm run verifier:credits` : bienvenue 3 → achat 10 → solde 13 ; double webhook sans double crédit).
 - Complément le même jour : **débit d'un crédit à l'envoi** (atomique conditionnel) ; solde nul → enveloppe reste en brouillon (`credits_insuffisants`). **86 tests verts**.
+
+### 13 août 2026 — connexion & autorisation (backend)
+- **Connexion téléphone + OTP frais** → jeton de session signé par le backend (`POST /v1/connexion`). Décision : pas Supabase Auth (portabilité).
+- **Émission protégée** : créer/envoyer + crédits exigent une session ; seul un compte **vérifié** peut émettre (I7) ; créateur = utilisateur connecté.
+- Adaptateur session (JWT HS256 sans dépendance), `parTelephone` (mémoire/Postgres). Correctif : crédits de bienvenue dans le registre partagé en dev.
+- **92 tests verts** (84 backend + 8 front). Prouvé contre la vraie base (`npm run verifier:connexion`). RLS en dur reportée (rôle DB restreint).
 
 ### 13 août 2026 — tunnel de signature invité (écran)
 - Deuxième écran : parcours de signature invité (`/signer/<enveloppe>/<signataire>`) — tracé au doigt (canvas, I1), OTP frais à l'instant (I2, simulé), confirmation, scellement auto.

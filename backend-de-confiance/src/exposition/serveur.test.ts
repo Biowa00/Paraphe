@@ -5,12 +5,43 @@ import { compositionDev } from "./composition";
 
 const TRACE = { horodatageCapture: "2026-08-12T14:00:00Z", traits: [[0, 0], [1, 1]] };
 
+async function ticket(app: FastifyInstance, action: string): Promise<string> {
+  const r = await app.inject({ method: "POST", url: "/v1/otp/verifie", payload: { action } });
+  return r.json().ticket;
+}
+
+/** Inscrit un émetteur vérifié puis le connecte. Renvoie l'en-tête d'autorisation. */
+async function inscrireEtConnecter(
+  app: FastifyInstance,
+  telephone = "+22997000000",
+  npi = "1234567890123",
+): Promise<{ auth: string; userId: string }> {
+  const refPiece = Buffer.from(
+    JSON.stringify({ npi, nom: "DOSSOU", prenoms: "Awa", coherence: "ok" }),
+  ).toString("base64url");
+  const refSelfie = Buffer.from(JSON.stringify({ vivaciteOk: true, score: 0.95 })).toString("base64url");
+  await app.inject({
+    method: "POST",
+    url: "/v1/inscription",
+    payload: { telephone, otpTicket: await ticket(app, "inscription"), refPiece, refSelfie },
+  });
+  const cnx = await app.inject({
+    method: "POST",
+    url: "/v1/connexion",
+    payload: { telephone, otpTicket: await ticket(app, "connexion") },
+  });
+  const body = cnx.json();
+  return { auth: `Bearer ${body.token}`, userId: body.utilisateur.id };
+}
+
 async function creerEtEnvoyer(app: FastifyInstance): Promise<{ id: string; sigId: string }> {
+  const { auth } = await inscrireEtConnecter(app);
+  // L'émetteur inscrit dispose de ses 3 crédits de bienvenue : l'envoi en consomme 1.
   const creation = await app.inject({
     method: "POST",
     url: "/v1/enveloppes",
+    headers: { authorization: auth },
     payload: {
-      createurId: "alice",
       titre: "Bail",
       mode: "sequentiel",
       signataires: [
@@ -19,20 +50,10 @@ async function creerEtEnvoyer(app: FastifyInstance): Promise<{ id: string; sigId
     },
   });
   const { id } = creation.json();
-  // Créditer « alice » : l'envoi consomme un crédit (I8 : l'émetteur paie).
-  const achat = await app.inject({
-    method: "POST",
-    url: "/v1/credits/achat",
-    payload: { titulaireType: "utilisateur", titulaireId: "alice", packId: "decouverte", telephone: "+229" },
-  });
-  await app.inject({
-    method: "POST",
-    url: "/v1/credits/mobile-money/callback",
-    payload: { reference: achat.json().transactionId, succes: true },
-  });
   await app.inject({
     method: "POST",
     url: `/v1/enveloppes/${id}/envoi`,
+    headers: { authorization: auth },
     payload: { documentBase64: Buffer.from("Bail").toString("base64"), acteur: "alice" },
   });
   const detail = await app.inject({ method: "GET", url: `/v1/enveloppes/${id}` });
@@ -92,10 +113,21 @@ describe("API HTTP", () => {
     expect(r.json().erreur.code).toBe("otp_invalide");
   });
 
-  it("rejette une création invalide → 400", async () => {
+  it("émettre sans connexion → 401", async () => {
     const r = await app.inject({
       method: "POST",
       url: "/v1/enveloppes",
+      payload: { titre: "Bail", mode: "sequentiel", signataires: [] },
+    });
+    expect(r.statusCode).toBe(401);
+  });
+
+  it("rejette une création invalide (connecté) → 400", async () => {
+    const { auth } = await inscrireEtConnecter(app);
+    const r = await app.inject({
+      method: "POST",
+      url: "/v1/enveloppes",
+      headers: { authorization: auth },
       payload: { titre: "", mode: "sequentiel", signataires: [] },
     });
     expect(r.statusCode).toBe(400);
@@ -153,45 +185,44 @@ describe("API HTTP", () => {
     expect(vide.statusCode).toBe(400);
   });
 
-  it("crédits : achat → webhook → solde ; double webhook n'ajoute rien", async () => {
-    const titulaire = { titulaireType: "utilisateur", titulaireId: "u-credits" };
+  it("crédits : bienvenue 3 → achat 10 → solde 13 ; double webhook n'ajoute rien", async () => {
+    const { auth } = await inscrireEtConnecter(app);
 
     const packs = await app.inject({ method: "GET", url: "/v1/credits/packs" });
     expect(packs.json().packs.length).toBeGreaterThan(0);
 
+    // Solde de départ = 3 crédits de bienvenue.
+    const avant = await app.inject({
+      method: "GET",
+      url: "/v1/credits/solde",
+      headers: { authorization: auth },
+    });
+    expect(avant.json().solde).toBe(3);
+
     const achat = await app.inject({
       method: "POST",
       url: "/v1/credits/achat",
-      payload: { ...titulaire, packId: "decouverte", telephone: "+22990000001" },
+      headers: { authorization: auth },
+      payload: { packId: "decouverte", telephone: "+22990000001" },
     });
     expect(achat.json().statut).toBe("en_attente");
     const reference = achat.json().transactionId;
 
-    // Avant confirmation : solde nul.
-    const avant = await app.inject({
-      method: "GET",
-      url: `/v1/credits/solde?titulaireType=utilisateur&titulaireId=u-credits`,
-    });
-    expect(avant.json().solde).toBe(0);
-
-    // Webhook succès → crédité.
-    await app.inject({
-      method: "POST",
-      url: "/v1/credits/mobile-money/callback",
-      payload: { reference, succes: true },
-    });
-    // Double notification → pas de double crédit.
-    await app.inject({
-      method: "POST",
-      url: "/v1/credits/mobile-money/callback",
-      payload: { reference, succes: true },
-    });
+    // Webhook succès, puis double notification (public : opérateur).
+    for (let i = 0; i < 2; i++) {
+      await app.inject({
+        method: "POST",
+        url: "/v1/credits/mobile-money/callback",
+        payload: { reference, succes: true },
+      });
+    }
 
     const apres = await app.inject({
       method: "GET",
-      url: `/v1/credits/solde?titulaireType=utilisateur&titulaireId=u-credits`,
+      url: "/v1/credits/solde",
+      headers: { authorization: auth },
     });
-    expect(apres.json().solde).toBe(10);
+    expect(apres.json().solde).toBe(13);
   });
 
   it("POST /v1/inscription → compte vérifié + identifiant public + 3 crédits", async () => {

@@ -17,6 +17,10 @@ export const CODES_ERREUR = {
   TRACE_ABSENTE: "trace_absente",
   ENVELOPPE_INTROUVABLE: "enveloppe_introuvable",
   TRANSITION_INTERDITE: "transition_interdite",
+  CONNEXION_REFUSEE: "connexion_refusee",
+  SESSION_REQUISE: "session_requise",
+  SESSION_INVALIDE: "session_invalide",
+  EMISSION_RESERVEE_VERIFIE: "emission_reservee_verifie",
 } as const;
 
 export type CodeErreur = (typeof CODES_ERREUR)[keyof typeof CODES_ERREUR];

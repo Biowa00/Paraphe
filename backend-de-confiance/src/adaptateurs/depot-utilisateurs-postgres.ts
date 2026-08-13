@@ -82,6 +82,14 @@ export async function npiHashExisteDb(db: Db, npiHash: string): Promise<boolean>
   return (r.rowCount ?? 0) > 0;
 }
 
+export async function utilisateurParTelephoneDb(db: Db, telephone: string): Promise<Utilisateur | null> {
+  const r = await db.query(
+    `select * from utilisateur where telephone = $1 and statut = 'actif' limit 1`,
+    [telephone],
+  );
+  return r.rowCount ? versUtilisateur(r.rows[0]) : null;
+}
+
 export async function chargerCompteVerifie(db: Db, id: string): Promise<CompteVerifieAgg | null> {
   const ru = await db.query(`select * from utilisateur where id = $1`, [id]);
   if (ru.rowCount === 0) return null;
@@ -132,6 +140,10 @@ export class DepotUtilisateursPostgres implements DepotUtilisateurs {
   async charger(id: string): Promise<CompteVerifieAgg | null> {
     return chargerCompteVerifie(this.#pool, id);
   }
+
+  async parTelephone(telephone: string): Promise<Utilisateur | null> {
+    return utilisateurParTelephoneDb(this.#pool, telephone);
+  }
 }
 
 /** Dépôt utilisateurs lié à UN client (transaction gérée par l'appelant). */
@@ -152,5 +164,9 @@ export class DepotUtilisateursSurClient implements DepotUtilisateurs {
 
   async charger(id: string): Promise<CompteVerifieAgg | null> {
     return chargerCompteVerifie(this.#db, id);
+  }
+
+  async parTelephone(telephone: string): Promise<Utilisateur | null> {
+    return utilisateurParTelephoneDb(this.#db, telephone);
   }
 }

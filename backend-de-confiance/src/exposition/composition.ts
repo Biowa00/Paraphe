@@ -17,6 +17,7 @@ import { BiometrieLocalDev } from "../adaptateurs/biometrie-local-dev";
 import { OperateurMobileMoneyLocalDev } from "../adaptateurs/operateur-mobile-money-local-dev";
 import { DepotCreditsMemoire, DepotPaiementsMemoire } from "../adaptateurs/depot-credits-memoire";
 import { DepotCreditsPostgres, DepotPaiementsPostgres } from "../adaptateurs/depot-credits-postgres";
+import { SessionJwtLocalDev } from "../adaptateurs/session-jwt-local-dev";
 import type {
   DepotCredits,
   DepotEnveloppes,
@@ -24,6 +25,7 @@ import type {
   DepotUtilisateurs,
   DepotVerification,
   OperateurMobileMoney,
+  ServiceSession,
 } from "../domaine/ports";
 
 /**
@@ -38,6 +40,7 @@ export interface Composition {
   depotCredits: DepotCredits;
   depotPaiements: DepotPaiements;
   operateurMM: OperateurMobileMoney;
+  session: ServiceSession;
   otp: GuichetOtpLocalDev;
   chiffreur: ChiffreurLocalDev;
   stockage: StockageLocalDev;
@@ -64,6 +67,7 @@ function servicesCommuns() {
     ocr: new OcrPieceLocalDev(),
     biometrie: new BiometrieLocalDev(),
     operateurMM: new OperateurMobileMoneyLocalDev(),
+    session: new SessionJwtLocalDev(),
     horloge: new HorlogeSysteme(),
     genererId: () => randomUUID(),
     alea: () => randomInt(0, 2 ** 31),
@@ -80,7 +84,8 @@ export function compositionDev(): Composition {
   return {
     depot: enveloppes,
     depotVerification: enveloppes,
-    depotUtilisateurs: new DepotUtilisateursMemoire(),
+    // Les crédits de bienvenue vont dans le registre partagé (visibles au solde/débit).
+    depotUtilisateurs: new DepotUtilisateursMemoire(credits),
     depotCredits: credits,
     depotPaiements: new DepotPaiementsMemoire(credits),
     ...servicesCommuns(),

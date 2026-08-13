@@ -18,6 +18,10 @@ const STATUT_PAR_CODE: Record<CodeErreur, number> = {
   trace_absente: 422,
   enveloppe_introuvable: 404,
   transition_interdite: 409,
+  connexion_refusee: 401,
+  session_requise: 401,
+  session_invalide: 401,
+  emission_reservee_verifie: 403,
 };
 
 export function envoyerErreur(reply: FastifyReply, erreur: unknown): void {

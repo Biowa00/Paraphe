@@ -1,11 +1,13 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { z } from "zod";
 import { creerEnveloppe } from "../cas-usage/creer-enveloppe";
 import { envoyerEnveloppe } from "../cas-usage/envoyer-enveloppe";
 import { traiterSignature } from "../cas-usage/traiter-signature";
 import { scellerEnveloppe } from "../cas-usage/sceller-enveloppe";
 import { inscrireCompteVerifie } from "../cas-usage/inscrire-compte-verifie";
+import { connecter } from "../cas-usage/connecter";
 import { verifierDocument } from "../cas-usage/verifier-document";
+import type { SessionPayload } from "../domaine/ports";
 import {
   consulterSolde,
   listerPacks,
@@ -18,8 +20,12 @@ import { envoyerErreur } from "./erreurs-http";
 
 const NIVEAU = z.enum(["otp_seul", "standard", "renforce"]);
 
+const schemaConnexion = z.object({
+  telephone: z.string().min(1),
+  otpTicket: z.string().min(1),
+});
+
 const schemaCreation = z.object({
-  createurId: z.string().min(1),
   entrepriseId: z.string().nullish(),
   titre: z.string().min(1),
   mode: z.enum(["sequentiel", "parallele"]),
@@ -65,10 +71,7 @@ const schemaVerification = z
     message: "Fournir un document ou une référence d'enveloppe.",
   });
 
-const TITULAIRE = z.enum(["utilisateur", "entreprise"]);
 const schemaAchat = z.object({
-  titulaireType: TITULAIRE,
-  titulaireId: z.string().min(1),
   packId: z.string().min(1),
   telephone: z.string().min(1),
 });
@@ -101,6 +104,36 @@ export function construireServeur(c: Composition): FastifyInstance {
     return reply.send({ ticket: c.otp.emettreTicket(parse.data.action) });
   });
 
+  // Session portée dans « Authorization: Bearer <token> » (aucun secret côté client).
+  function session(req: FastifyRequest): SessionPayload | null {
+    const auth = req.headers.authorization;
+    if (typeof auth !== "string" || !auth.startsWith("Bearer ")) return null;
+    return c.session.verifier(auth.slice(7));
+  }
+  function exigerSession(req: FastifyRequest, reply: FastifyReply): SessionPayload | null {
+    const s = session(req);
+    if (!s) {
+      reply.status(401).send({ erreur: { code: "session_requise", message: "Connexion requise." } });
+      return null;
+    }
+    return s;
+  }
+
+  app.post("/v1/connexion", async (req, reply) => {
+    const parse = schemaConnexion.safeParse(req.body);
+    if (!parse.success) return requeteInvalide(reply, "Connexion invalide.");
+    try {
+      const r = await connecter(parse.data, {
+        depot: c.depotUtilisateurs,
+        otp: c.otp,
+        session: c.session,
+      });
+      return reply.send(r);
+    } catch (e) {
+      return envoyerErreur(reply, e);
+    }
+  });
+
   // Vérification publique : sans compte, lecture seule, ne divulgue pas le contenu.
   app.post("/v1/verification", async (req, reply) => {
     const parse = schemaVerification.safeParse(req.body);
@@ -119,27 +152,22 @@ export function construireServeur(c: Composition): FastifyInstance {
   app.get("/v1/credits/packs", async () => ({ packs: listerPacks() }));
 
   app.get("/v1/credits/solde", async (req, reply) => {
-    const q = req.query as { titulaireType?: string; titulaireId?: string };
-    const parse = z
-      .object({ titulaireType: TITULAIRE, titulaireId: z.string().min(1) })
-      .safeParse(q);
-    if (!parse.success) return requeteInvalide(reply, "Titulaire requis.");
-    const solde = await consulterSolde(
-      { type: parse.data.titulaireType, id: parse.data.titulaireId },
-      { depot: c.depotCredits },
-    );
+    const s = exigerSession(req, reply);
+    if (!s) return;
+    const solde = await consulterSolde({ type: "utilisateur", id: s.sub }, { depot: c.depotCredits });
     return reply.send(solde);
   });
 
   app.post("/v1/credits/achat", async (req, reply) => {
+    const s = exigerSession(req, reply);
+    if (!s) return;
     const parse = schemaAchat.safeParse(req.body);
     if (!parse.success) return requeteInvalide(reply, "Achat invalide.");
     try {
-      const r = await acheterCredits(parse.data, {
-        depotPaiements: c.depotPaiements,
-        operateur: c.operateurMM,
-        genererId: c.genererId,
-      });
+      const r = await acheterCredits(
+        { titulaireType: "utilisateur", titulaireId: s.sub, ...parse.data },
+        { depotPaiements: c.depotPaiements, operateur: c.operateurMM, genererId: c.genererId },
+      );
       return reply.send(r);
     } catch (e) {
       return envoyerErreur(reply, e);
@@ -182,14 +210,21 @@ export function construireServeur(c: Composition): FastifyInstance {
   });
 
   app.post("/v1/enveloppes", async (req, reply) => {
+    const s = exigerSession(req, reply);
+    if (!s) return;
+    if (s.niveau !== "verifie") {
+      return reply
+        .status(403)
+        .send({ erreur: { code: "emission_reservee_verifie", message: "Seul un compte vérifié peut émettre." } });
+    }
     const parse = schemaCreation.safeParse(req.body);
     if (!parse.success) return requeteInvalide(reply, "Enveloppe invalide.");
     try {
-      const r = await creerEnveloppe(parse.data, {
-        depot: c.depot,
-        horloge: c.horloge,
-        genererId: c.genererId,
-      });
+      // Le créateur est l'utilisateur connecté (jamais un champ du corps).
+      const r = await creerEnveloppe(
+        { ...parse.data, createurId: s.sub },
+        { depot: c.depot, horloge: c.horloge, genererId: c.genererId },
+      );
       return reply.status(201).send({ id: r.enveloppeId, statut: "brouillon" });
     } catch (e) {
       return envoyerErreur(reply, e);
@@ -197,6 +232,8 @@ export function construireServeur(c: Composition): FastifyInstance {
   });
 
   app.post("/v1/enveloppes/:id/envoi", async (req, reply) => {
+    const s = exigerSession(req, reply);
+    if (!s) return;
     const { id } = req.params as { id: string };
     const parse = schemaEnvoi.safeParse(req.body);
     if (!parse.success) return requeteInvalide(reply, "Envoi invalide.");
