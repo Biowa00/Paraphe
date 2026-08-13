@@ -5,6 +5,8 @@ import {
   DepotEnveloppesSurClient,
 } from "../adaptateurs/depot-enveloppes-postgres";
 import { DepotUtilisateursSurClient } from "../adaptateurs/depot-utilisateurs-postgres";
+import { soldeDb, enregistrerCreditDb, debiterEnvoiDb } from "../adaptateurs/depot-credits-postgres";
+import type { DepotCredits } from "../domaine/ports";
 import { GuichetOtpLocalDev } from "../adaptateurs/guichet-otp-local-dev";
 import { ChiffreurLocalDev } from "../adaptateurs/chiffreur-local-dev";
 import { StockageLocalDev } from "../adaptateurs/stockage-local-dev";
@@ -46,6 +48,11 @@ try {
   await client.query("begin");
   const depotU = new DepotUtilisateursSurClient(client);
   const depot = new DepotEnveloppesSurClient(client);
+  const credits: DepotCredits = {
+    solde: (t, i) => soldeDb(client, t, i),
+    enregistrer: (tx) => enregistrerCreditDb(client, tx),
+    debiterEnvoi: (t, i, e) => debiterEnvoiDb(client, t, i, e),
+  };
 
   // 1. Inscrire un créateur vérifié (FK createur_id → utilisateur).
   const inscription = await inscrireCompteVerifie(
@@ -84,7 +91,7 @@ try {
 
   // 3. Envoyer (fige l'empreinte).
   const document = Buffer.from("Contenu du document de test", "utf8");
-  await envoyerEnveloppe({ enveloppeId, document, acteur: createurId }, { depot, horloge });
+  await envoyerEnveloppe({ enveloppeId, document, acteur: createurId }, { depot, credits, horloge });
 
   // 4. Signer (unique signataire → complete).
   const agg1 = await depot.charger(enveloppeId);

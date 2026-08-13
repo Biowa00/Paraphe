@@ -10,7 +10,7 @@
 | Domaine | État |
 |---|---|
 | 📋 Conception (le plan complet) | ✅ Fait |
-| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 84 tests) |
+| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 86 tests) |
 | 🌐 API (l'appli répond à des requêtes) | ✅ Fait |
 | ☁️ Sauvegarde en ligne (GitHub) | ✅ Fait |
 | 🗄️ Base de données (Supabase) | ✅ Fait (12 tables) |
@@ -18,7 +18,7 @@
 | 🔌 Brancher l'appli entière sur la base | ✅ Fait — boucle complète (inscrire→créer→envoyer→signer→sceller) prouvée sur Postgres |
 | 🔍 Vérification publique (authentique ou altéré ?) | ✅ Fait — backend + **premier écran** (page publique) |
 | ✍️ Tunnel de signature invité (écran) | ✅ Fait côté écran — tracé + OTP (simulé) → scellement |
-| 💳 Crédits Mobile Money (recharge & solde) | ✅ Fait côté backend — achat, webhook idempotent (paiement réel simulé) |
+| 💳 Crédits Mobile Money (recharge, solde, conso) | ✅ Fait côté backend — achat, webhook idempotent, débit à l'envoi (paiement simulé) |
 | 🖥️ L'écran que verront les utilisateurs | 🔄 Commencé — vérification + signature ; le reste à venir |
 | 🚀 Mise en ligne pour de vrais clients | ⏳ À faire (dépend de décisions) |
 
@@ -79,7 +79,8 @@
 - **Idempotence prouvée** : une double notification de l'opérateur ne crédite **jamais** deux fois (verrou + index unique). Un paiement échoué ne débite rien (I8).
 - Le **destinataire ne paie jamais** — ces endpoints ne le concernent pas (I8).
 - Le fournisseur Mobile Money réel (MTN/Moov) est **simulé** en attendant l'arbitrage (décision n°4) ; le **prix des packs** est un placeholder (dépend des entretiens PME).
-- Migration **`0004`** (table `paiement`) appliquée. **84 tests** (76 backend + 8 front). Prouvé contre la vraie base : `npm run verifier:credits` (bienvenue 3 → achat 10 → solde 13 ; double webhook sans double crédit).
+- **Consommation** : un crédit est **débité à l'envoi** d'une enveloppe (débit atomique conditionnel) ; **solde nul → l'enveloppe reste en brouillon** (`credits_insuffisants`).
+- Migration **`0004`** (table `paiement`) appliquée. **86 tests** (78 backend + 8 front). Prouvé contre la vraie base : `npm run verifier:credits` (bienvenue 3 → achat 10 → solde 13 ; double webhook sans double crédit) ; les preuves boucle/vérification débitent bien un crédit à l'envoi.
 
 ### ✍️ Tunnel de signature invité (écran)
 - L'écran où un invité **signe un document reçu**, gratuitement, sans compte : ouvrir (`/signer/<enveloppe>/<signataire>`) → **tracer sa signature** (refaite à l'instant, jamais rejouée — I1) → **code de vérification frais** (I2) → confirmation ; scellement automatique au dernier signataire.
@@ -100,10 +101,9 @@
 ## ⏳ À faire
 
 ### Prochaine étape (au choix)
-- **💳 Débit d'un crédit à l'envoi** (S5, complément) : consommer 1 crédit à l'envoi d'une enveloppe ; solde nul → reste en brouillon (`credits_insuffisants`).
+- **🔒 Règles d'accès (RLS) + authentification** : cloisonner qui voit quoi en base — prérequis de S6 et de la mise en prod.
 - **📁 Archive personnelle** (S6) : retrouver ses documents + télécharger le dossier de preuve (a besoin de la connexion/RLS).
-- **🔒 Règles d'accès (RLS) + authentification** : cloisonner qui voit quoi en base.
-- **🖥️ Écrans émetteur** : créer/envoyer une enveloppe, tableau de bord.
+- **🖥️ Écrans émetteur** : créer/envoyer une enveloppe, recharger son solde, tableau de bord.
 
 ### Ensuite
 - **📁 Archive personnelle** (retrouver ses documents signés).
@@ -165,6 +165,7 @@
 - Registre de crédits (solde = somme, ajout seul), packs, achat, webhook opérateur **idempotent** (jamais de double crédit) ; échec → solde inchangé (I8).
 - Opérateur Mobile Money **simulé** (réel = décision n°4) ; prix des packs = placeholder.
 - 4 endpoints crédits. **84 tests verts** (+8). Prouvé contre la vraie base (`npm run verifier:credits` : bienvenue 3 → achat 10 → solde 13 ; double webhook sans double crédit).
+- Complément le même jour : **débit d'un crédit à l'envoi** (atomique conditionnel) ; solde nul → enveloppe reste en brouillon (`credits_insuffisants`). **86 tests verts**.
 
 ### 13 août 2026 — tunnel de signature invité (écran)
 - Deuxième écran : parcours de signature invité (`/signer/<enveloppe>/<signataire>`) — tracé au doigt (canvas, I1), OTP frais à l'instant (I2, simulé), confirmation, scellement auto.

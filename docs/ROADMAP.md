@@ -61,7 +61,8 @@ Construite en tranches verticales, dans cet ordre :
   - ⏳ *Suite* : **re-vérification du cachet serveur** (clé de scellement stable au KMS) ; **ancrage public quotidien** + `GET /v1/ancrage/{date}` (support = décision ouverte n°6).
 - **S5 · Crédits Mobile Money.** Solde, packs, 3 crédits de bienvenue non expirants, webhook idempotent. *L'encaissement.*
   - ✅ *Recharge & solde (backend)* : registre en ajout seul (solde = somme), packs, `POST /credits/achat`, webhook `mobile-money/callback` **idempotent** (double notification sans double crédit), échec sans débit (I8). Opérateur MM **simulé** (réel = décision n°4), prix = placeholder. Migration `0004` (table `paiement`). Prouvé contre la vraie base (`npm run verifier:credits`).
-  - ⏳ *Suite* : **débit d'1 crédit à l'envoi** (solde nul → reste brouillon, `credits_insuffisants`) ; branchement d'un vrai fournisseur Mobile Money + **webhook signé/réconciliation** ; écran de recharge (UI).
+  - ✅ *Consommation* : **débit d'1 crédit à l'envoi** (atomique conditionnel) ; solde nul → l'enveloppe reste en brouillon (`credits_insuffisants`). Prouvé (les preuves boucle/vérification débitent un crédit).
+  - ⏳ *Suite* : branchement d'un vrai fournisseur Mobile Money + **webhook signé / réconciliation** ; écran de recharge (UI).
 - **S6 · Archive personnelle.** Liste, consultation, téléchargement du dossier de preuve.
 
 **Sortie de V1 (critères)** : une PME réelle s'inscrit, envoie, fait signer un invité, obtient un document scellé + preuve ; n'importe qui vérifie publiquement ; le paiement fonctionne. Interface mobile d'abord, 3G acceptable. *Dossier APDP et localisation validés avant d'ouvrir au public.*

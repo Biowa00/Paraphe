@@ -25,6 +25,19 @@ export class DepotCreditsMemoire implements DepotCredits {
   async enregistrer(tx: TransactionCredit): Promise<void> {
     this.lignes.push({ ...tx });
   }
+
+  async debiterEnvoi(type: TitulaireType, id: string, enveloppeId: string): Promise<boolean> {
+    const { solde } = await this.solde(type, id);
+    if (solde < 1) return false;
+    this.lignes.push({
+      titulaireType: type,
+      titulaireId: id,
+      type: "consommation",
+      montant: -1,
+      enveloppeId,
+    });
+    return true;
+  }
 }
 
 /** DEV / TESTS — paiements en mémoire, confirmation idempotente. */

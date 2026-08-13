@@ -2,7 +2,7 @@ import type { StatutEnveloppe } from "@paraphe/partage";
 import { CODES_ERREUR, ErreurMetier } from "@paraphe/partage";
 import { empreinteSha256 } from "../domaine/empreinte";
 import { transition } from "../domaine/enveloppe";
-import type { DepotEnveloppes, Horloge } from "../domaine/ports";
+import type { DepotCredits, DepotEnveloppes, Horloge } from "../domaine/ports";
 
 export interface DemandeEnvoi {
   enveloppeId: string;
@@ -12,6 +12,7 @@ export interface DemandeEnvoi {
 
 export interface DependancesEnvoi {
   depot: DepotEnveloppes;
+  credits: DepotCredits;
   horloge: Horloge;
 }
 
@@ -43,7 +44,23 @@ export async function envoyerEnveloppe(
     );
   }
 
+  // Valider la transition AVANT de débiter (sinon un envoi impossible — déjà
+  // envoyée, etc. — consommerait un crédit).
   const statut = transition(agg.enveloppe.statut, "envoyer");
+
+  // Débit d'un crédit (l'émetteur paie ; I8 ne concerne que le destinataire).
+  // Solde insuffisant → l'enveloppe reste brouillon (05_api_contracts/03).
+  const titulaire = agg.enveloppe.entrepriseId
+    ? { type: "entreprise" as const, id: agg.enveloppe.entrepriseId }
+    : { type: "utilisateur" as const, id: agg.enveloppe.createurId };
+  const debite = await deps.credits.debiterEnvoi(titulaire.type, titulaire.id, demande.enveloppeId);
+  if (!debite) {
+    throw new ErreurMetier(
+      CODES_ERREUR.CREDITS_INSUFFISANTS,
+      "Solde de crédits insuffisant pour envoyer.",
+    );
+  }
+
   const documentHashOrigine = empreinteSha256(demande.document);
 
   agg.enveloppe.statut = statut;

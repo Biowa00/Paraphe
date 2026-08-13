@@ -10,6 +10,14 @@ import { GuichetOtpLocalDev } from "../adaptateurs/guichet-otp-local-dev";
 import { ChiffreurLocalDev } from "../adaptateurs/chiffreur-local-dev";
 import { StockageLocalDev } from "../adaptateurs/stockage-local-dev";
 import { SceauServeurLocalDev } from "../adaptateurs/sceau-serveur-local-dev";
+import { DepotCreditsMemoire } from "../adaptateurs/depot-credits-memoire";
+
+/** Un dépôt de crédits où « alice » peut envoyer (10 crédits). */
+function creditsAlice(): DepotCreditsMemoire {
+  const c = new DepotCreditsMemoire();
+  c.lignes.push({ titulaireType: "utilisateur", titulaireId: "alice", type: "achat", montant: 10 });
+  return c;
+}
 
 const TRACE: Trace = {
   horodatageCapture: "2026-08-12T14:00:00Z",
@@ -45,7 +53,7 @@ describe("boucle de signature (S1 — de bout en bout)", () => {
     // 2. Envoyer
     const envoi = await envoyerEnveloppe(
       { enveloppeId, document: DOCUMENT, acteur: "alice" },
-      { depot, horloge },
+      { depot, credits: creditsAlice(), horloge },
     );
     expect(envoi.statut).toBe("envoyee");
 
@@ -147,7 +155,7 @@ describe("boucle de signature (S1 — de bout en bout)", () => {
       },
       { depot, horloge, genererId },
     );
-    await envoyerEnveloppe({ enveloppeId, document: DOCUMENT, acteur: "alice" }, { depot, horloge });
+    await envoyerEnveloppe({ enveloppeId, document: DOCUMENT, acteur: "alice" }, { depot, credits: creditsAlice(), horloge });
 
     const agg = await depot.charger(enveloppeId);
     const [, sig2] = agg!.signataires;

@@ -204,7 +204,7 @@ export function construireServeur(c: Composition): FastifyInstance {
       const document = Buffer.from(parse.data.documentBase64, "base64");
       const r = await envoyerEnveloppe(
         { enveloppeId: id, document, acteur: parse.data.acteur },
-        { depot: c.depot, horloge: c.horloge },
+        { depot: c.depot, credits: c.depotCredits, horloge: c.horloge },
       );
       c.bufferDocuments.set(id, document); // DEV : conservé jusqu'au scellement
       return reply.send({ statut: r.statut, documentHashOrigine: r.documentHashOrigine });

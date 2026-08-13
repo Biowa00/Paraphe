@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import { DepotEnveloppesSurClient } from "../adaptateurs/depot-enveloppes-postgres";
 import { DepotUtilisateursSurClient } from "../adaptateurs/depot-utilisateurs-postgres";
 import { parRefDb, parEmpreinteDb } from "../adaptateurs/depot-verification-postgres";
+import { soldeDb, enregistrerCreditDb, debiterEnvoiDb } from "../adaptateurs/depot-credits-postgres";
 import { GuichetOtpLocalDev } from "../adaptateurs/guichet-otp-local-dev";
 import { ChiffreurLocalDev } from "../adaptateurs/chiffreur-local-dev";
 import { StockageLocalDev } from "../adaptateurs/stockage-local-dev";
@@ -18,7 +19,7 @@ import { envoyerEnveloppe } from "../cas-usage/envoyer-enveloppe";
 import { traiterSignature } from "../cas-usage/traiter-signature";
 import { scellerEnveloppe } from "../cas-usage/sceller-enveloppe";
 import { verifierDocument } from "../cas-usage/verifier-document";
-import type { DepotVerification } from "../domaine/ports";
+import type { DepotCredits, DepotVerification } from "../domaine/ports";
 import type { PoolClient } from "pg";
 
 // Prouve la VÉRIFICATION PUBLIQUE contre la VRAIE base : on scelle une enveloppe,
@@ -52,6 +53,11 @@ try {
   await client.query("begin");
   const depot = new DepotEnveloppesSurClient(client);
   const depotU = new DepotUtilisateursSurClient(client);
+  const credits: DepotCredits = {
+    solde: (t, i) => soldeDb(client, t, i),
+    enregistrer: (tx) => enregistrerCreditDb(client, tx),
+    debiterEnvoi: (t, i, e) => debiterEnvoiDb(client, t, i, e),
+  };
 
   // Inscrire un créateur vérifié + sceller une enveloppe (document connu).
   const insc = await inscrireCompteVerifie(
@@ -76,7 +82,7 @@ try {
     },
     { depot, horloge, genererId },
   );
-  await envoyerEnveloppe({ enveloppeId, document, acteur: insc.utilisateurId }, { depot, horloge });
+  await envoyerEnveloppe({ enveloppeId, document, acteur: insc.utilisateurId }, { depot, credits, horloge });
   const agg1 = await depot.charger(enveloppeId);
   await traiterSignature(
     {

@@ -19,6 +19,17 @@ async function creerEtEnvoyer(app: FastifyInstance): Promise<{ id: string; sigId
     },
   });
   const { id } = creation.json();
+  // Créditer « alice » : l'envoi consomme un crédit (I8 : l'émetteur paie).
+  const achat = await app.inject({
+    method: "POST",
+    url: "/v1/credits/achat",
+    payload: { titulaireType: "utilisateur", titulaireId: "alice", packId: "decouverte", telephone: "+229" },
+  });
+  await app.inject({
+    method: "POST",
+    url: "/v1/credits/mobile-money/callback",
+    payload: { reference: achat.json().transactionId, succes: true },
+  });
   await app.inject({
     method: "POST",
     url: `/v1/enveloppes/${id}/envoi`,

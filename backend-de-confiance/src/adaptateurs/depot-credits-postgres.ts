@@ -31,6 +31,30 @@ export async function enregistrerCreditDb(db: Db, tx: TransactionCredit): Promis
   );
 }
 
+/**
+ * Débite 1 crédit pour un envoi, atomiquement : la ligne n'est insérée que si le
+ * solde courant est ≥ 1 (condition évaluée dans le même ordre SQL). Renvoie vrai
+ * si une ligne a été écrite.
+ */
+export async function debiterEnvoiDb(
+  db: Db,
+  type: TitulaireType,
+  id: string,
+  enveloppeId: string,
+): Promise<boolean> {
+  const r = await db.query(
+    `insert into credit_transaction (titulaire_type, titulaire_id, type, montant, enveloppe_id)
+     select $1, $2, 'consommation', -1, $3
+     where (
+       select coalesce(sum(montant), 0) from credit_transaction
+       where titulaire_type = $1 and titulaire_id = $2
+     ) >= 1
+     returning id`,
+    [type, id, enveloppeId],
+  );
+  return (r.rowCount ?? 0) > 0;
+}
+
 export class DepotCreditsPostgres implements DepotCredits {
   readonly #pool: Pool;
   constructor(pool: Pool) {
@@ -41,6 +65,9 @@ export class DepotCreditsPostgres implements DepotCredits {
   }
   enregistrer(tx: TransactionCredit): Promise<void> {
     return enregistrerCreditDb(this.#pool, tx);
+  }
+  debiterEnvoi(type: TitulaireType, id: string, enveloppeId: string): Promise<boolean> {
+    return debiterEnvoiDb(this.#pool, type, id, enveloppeId);
   }
 }
 

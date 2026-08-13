@@ -157,6 +157,12 @@ export interface Solde {
 export interface DepotCredits {
   solde(type: TitulaireType, id: string): Promise<Solde>;
   enregistrer(tx: TransactionCredit): Promise<void>;
+  /**
+   * Débite 1 crédit pour l'envoi d'une enveloppe, de façon atomique et
+   * conditionnelle : ne débite QUE si le solde est ≥ 1. Renvoie `false` si le
+   * solde est insuffisant (aucune ligne écrite).
+   */
+  debiterEnvoi(type: TitulaireType, id: string, enveloppeId: string): Promise<boolean>;
 }
 
 /** Résultat de la confirmation d'un paiement (idempotente). */
