@@ -54,7 +54,8 @@ Construite en tranches verticales, dans cet ordre :
 - **S3 · Boucle de signature (le cœur).** Créer/envoyer une enveloppe → signature invité (OTP frais + tracé, niveaux OTP-seul/Standard/Renforcé) → scellement automatique. *La tranche qui rend le produit réel.*
 - **S4 · Vérification publique.** La page sans compte + endpoint d'ancrage. *Le levier d'acquisition ; chaque document scellé y ramène du monde.*
   - ✅ *Vérification d'intégrité (backend)* : `POST /v1/verification` (sans compte) — dépôt document/référence → intègre/altéré + signataires/niveaux/dates, **sans divulguer le contenu ni le titre (I6/I7)** ; document inconnu ou brouillon → réponse neutre. Port `DepotVerification` + adaptateurs mémoire/Postgres. **68 tests verts** ; prouvé contre la vraie base (`npm run verifier:verification`).
-  - ⏳ *Suite* : **re-vérification du cachet serveur** (clé de scellement stable au KMS) ; **ancrage public quotidien** + `GET /v1/ancrage/{date}` (support = décision ouverte n°6) ; **page publique** (UI, `09_components`).
+  - ✅ *Page publique (1er écran)* : workspace `client` (Vite + React, mobile d'abord, aucun secret) ; dépôt PDF ou `/v/référence` → verdict clair + signataires/niveaux/dates, sans divulguer le contenu (I7). Branchée sur `POST /v1/verification`, observée bout en bout ; 6 tests front.
+  - ⏳ *Suite* : **re-vérification du cachet serveur** (clé de scellement stable au KMS) ; **ancrage public quotidien** + `GET /v1/ancrage/{date}` (support = décision ouverte n°6).
 - **S5 · Crédits Mobile Money.** Solde, packs, 3 crédits de bienvenue non expirants, webhook idempotent. *L'encaissement.*
 - **S6 · Archive personnelle.** Liste, consultation, téléchargement du dossier de preuve.
 

@@ -5,7 +5,8 @@
   "type": "module",
   "workspaces": [
     "partage",
-    "backend-de-confiance"
+    "backend-de-confiance",
+    "client"
   ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",

@@ -10,14 +10,14 @@
 | Domaine | État |
 |---|---|
 | 📋 Conception (le plan complet) | ✅ Fait |
-| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 68 tests) |
+| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 74 tests) |
 | 🌐 API (l'appli répond à des requêtes) | ✅ Fait |
 | ☁️ Sauvegarde en ligne (GitHub) | ✅ Fait |
 | 🗄️ Base de données (Supabase) | ✅ Fait (12 tables) |
 | 👤 Comptes / inscription vérifiée | ✅ Fait côté backend (chemin « validé », 60 tests) — écran + revue manuelle à venir |
 | 🔌 Brancher l'appli entière sur la base | ✅ Fait — boucle complète (inscrire→créer→envoyer→signer→sceller) prouvée sur Postgres |
-| 🔍 Vérification publique (authentique ou altéré ?) | ✅ Fait côté backend — écran public à venir |
-| 🖥️ L'écran que verront les utilisateurs | ⏳ À faire |
+| 🔍 Vérification publique (authentique ou altéré ?) | ✅ Fait — backend + **premier écran** (page publique) |
+| 🖥️ L'écran que verront les utilisateurs | 🔄 Commencé — 1er écran fait (vérification) ; le reste à venir |
 | 🚀 Mise en ligne pour de vrais clients | ⏳ À faire (dépend de décisions) |
 
 ---
@@ -64,6 +64,13 @@
 - **Prouvé contre la vraie base** : document authentique = intègre, document trafiqué = rejeté, recherche par empreinte OK (`npm run verifier:verification`, transaction annulée).
 - Périmètre de cette tranche : la couche **intégrité** (empreinte SHA-256). La **re-vérification du cachet serveur** et l'**ancrage public quotidien** viendront avec la clé de scellement stable (KMS) et le support d'ancrage (décisions ouvertes n°6).
 
+### 🖥️ Premier écran : la page publique de vérification
+- **La première vraie interface visible.** On dépose un PDF (ou on arrive via `/v/référence` depuis le QR du cachet) et l'écran affiche un **verdict clair** : authentique ✓ / modifié ✗ / aucune correspondance, avec signataires, niveaux et dates.
+- Socle front posé : **Vite + React + TypeScript** (workspace `client`), mobile d'abord, aucun secret côté client. Jetons de design en rôles (un seul accent, placeholder marque), accessible (verdict = couleur **+** libellé **+** icône), `prefers-reduced-motion` respecté.
+- Le fichier **ne quitte pas l'appareil de façon lisible** : seul son sceau est confronté ; l'écran ne montre jamais le contenu ni le titre (I7).
+- Branché sur le vrai backend (`POST /v1/verification`, proxy dev). **Observé de bout en bout** : document authentique → intègre ; document trafiqué → « modifié après signature ». Build de prod OK (~48 kB gzip), 6 tests front.
+- Pour le voir : `npm run dev -w @paraphe/backend-de-confiance` (un terminal) + `npm run dev -w @paraphe/client` (un autre) → http://localhost:5173.
+
 ---
 
 ## 🔄 En cours (commencé, pas terminé)
@@ -78,7 +85,7 @@
 ### Prochaine étape (au choix)
 - **🔒 Règles d'accès (RLS) + authentification** : cloisonner qui voit quoi en base, une fois un vrai mécanisme de connexion en place.
 - **📁 Archive personnelle** (retrouver ses documents signés + télécharger le dossier de preuve).
-- **🖥️ Premier écran** : la page publique de vérification (le backend est prêt) — visible et gratifiant.
+- **🖥️ Écrans suivants** : tunnel de signature invité, tableau de bord émetteur, inscription — maintenant que le socle front existe.
 
 ### Ensuite
 - **📁 Archive personnelle** (retrouver ses documents signés).
@@ -128,5 +135,11 @@
 - Port `DepotVerification` + adaptateurs mémoire et Postgres (lecture seule). **68 tests verts** (+8).
 - Prouvé contre la vraie base : `npm run verifier:verification` (authentique = intègre, trafiqué = rejeté, transaction annulée).
 - Périmètre : couche intégrité (SHA-256). Cachet re-vérifiable + ancrage quotidien = raffinements suivants (clé KMS stable, support d'ancrage).
+
+### 13 août 2026 — premier écran : page publique de vérification
+- Socle front posé : workspace `client` (Vite + React + TypeScript), mobile d'abord, aucun secret ; jetons de design en rôles, accessible, `prefers-reduced-motion`.
+- Page de vérification : dépôt d'un PDF ou arrivée via `/v/référence` → verdict clair (authentique / modifié / aucune correspondance) + signataires, niveaux, dates ; ne montre jamais le contenu ni le titre (I7).
+- Branchée sur le vrai backend (`POST /v1/verification`, proxy dev). Observé bout en bout au niveau HTTP (authentique = intègre, trafiqué = « modifié après signature »). Build prod ~48 kB gzip.
+- **74 tests verts** (68 backend + 6 front). Pour voir l'écran : backend `npm run dev -w @paraphe/backend-de-confiance` + client `npm run dev -w @paraphe/client` → http://localhost:5173.
 
 *(Les prochaines dates s'ajouteront ici au fil de l'eau.)*

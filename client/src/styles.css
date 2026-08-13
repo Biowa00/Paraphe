@@ -1,0 +1,272 @@
+/*
+ * Jetons de design en RÔLES (09_components/01) : valeurs de placeholder tant que
+ * la marque n'est pas arrêtée — on remplira les héx SANS changer les rôles.
+ * Palette restreinte, un seul accent ; les couleurs de statut sont sémantiques.
+ * Statut = couleur + libellé + icône (jamais la couleur seule).
+ */
+:root {
+  --surface: #ffffff;
+  --surface-alt: #f5f7f8;
+  --texte: #16191d;
+  --texte-attenue: #5c6773;
+  --bordure: #e3e8ec;
+  --accent: #0b6b5b; /* placeholder marque (teal « scellé ») */
+  --accent-contraste: #ffffff;
+
+  /* Sémantique de statut / verdict */
+  --ok: #0f7b53;
+  --ok-fond: #e7f5ee;
+  --alerte: #b3261e;
+  --alerte-fond: #fdeceb;
+  --neutre: #5c6773;
+  --neutre-fond: #eef1f3;
+  --info: #1f5aa8;
+  --info-fond: #e9f0fb;
+
+  --unite: 8px;
+  --rayon: 12px;
+  --largeur-max: 640px;
+
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--texte);
+  background: var(--surface-alt);
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.page {
+  max-width: var(--largeur-max);
+  margin: 0 auto;
+  padding: calc(var(--unite) * 3) calc(var(--unite) * 2) calc(var(--unite) * 8);
+}
+
+.marque {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--accent);
+  margin-bottom: calc(var(--unite) * 1);
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 calc(var(--unite) * 0.5);
+}
+
+.accroche {
+  color: var(--texte-attenue);
+  margin: 0 0 calc(var(--unite) * 3);
+}
+
+.carte {
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  padding: calc(var(--unite) * 3);
+  margin-bottom: calc(var(--unite) * 2);
+}
+
+.champ-fichier {
+  display: block;
+  border: 2px dashed var(--bordure);
+  border-radius: var(--rayon);
+  padding: calc(var(--unite) * 4) calc(var(--unite) * 2);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.champ-fichier:hover,
+.champ-fichier:focus-within {
+  border-color: var(--accent);
+  background: var(--surface-alt);
+}
+.champ-fichier input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.champ-fichier .nom-fichier {
+  color: var(--texte);
+  font-weight: 600;
+  word-break: break-all;
+}
+.champ-fichier .indice {
+  color: var(--texte-attenue);
+  font-size: 0.9rem;
+  margin-top: calc(var(--unite) * 0.5);
+}
+
+.separateur {
+  display: flex;
+  align-items: center;
+  gap: var(--unite);
+  color: var(--texte-attenue);
+  font-size: 0.85rem;
+  margin: calc(var(--unite) * 2) 0;
+}
+.separateur::before,
+.separateur::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--bordure);
+}
+
+label.libelle {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--texte-attenue);
+  margin-bottom: calc(var(--unite) * 0.5);
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: calc(var(--unite) * 1.5);
+  font-size: 1rem;
+  border: 1px solid var(--bordure);
+  border-radius: calc(var(--rayon) - 4px);
+  background: var(--surface);
+  color: var(--texte);
+}
+input[type="text"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.bouton {
+  width: 100%;
+  min-height: 48px; /* cible tactile confortable */
+  margin-top: calc(var(--unite) * 2);
+  padding: calc(var(--unite) * 1.5) calc(var(--unite) * 2);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent-contraste);
+  background: var(--accent);
+  border: none;
+  border-radius: calc(var(--rayon) - 4px);
+  cursor: pointer;
+}
+.bouton:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+/* Verdict — gros, clair, en premier */
+.verdict {
+  border-radius: var(--rayon);
+  padding: calc(var(--unite) * 3);
+  margin-bottom: calc(var(--unite) * 2);
+  border: 1px solid transparent;
+}
+.verdict .entete {
+  display: flex;
+  align-items: center;
+  gap: var(--unite);
+}
+.verdict .icone {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.verdict h2 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+.verdict p {
+  margin: calc(var(--unite) * 1.5) 0 0;
+  color: var(--texte-attenue);
+}
+.verdict.ok { background: var(--ok-fond); border-color: var(--ok); }
+.verdict.ok .icone { background: var(--ok); color: #fff; }
+.verdict.alerte { background: var(--alerte-fond); border-color: var(--alerte); }
+.verdict.alerte .icone { background: var(--alerte); color: #fff; }
+.verdict.neutre { background: var(--neutre-fond); border-color: var(--bordure); }
+.verdict.neutre .icone { background: var(--neutre); color: #fff; }
+.verdict.info { background: var(--info-fond); border-color: var(--info); }
+.verdict.info .icone { background: var(--info); color: #fff; }
+
+.signataires {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.signataires li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: calc(var(--unite) * 0.5);
+  padding: calc(var(--unite) * 1.5) 0;
+  border-bottom: 1px solid var(--bordure);
+}
+.signataires li:last-child {
+  border-bottom: none;
+}
+.signataires .nom {
+  font-weight: 600;
+}
+.badge-niveau {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  border: 1px solid var(--bordure);
+  color: var(--texte-attenue);
+}
+.date {
+  color: var(--texte-attenue);
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.titre-section {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texte-attenue);
+  margin: 0 0 var(--unite);
+}
+
+.note {
+  font-size: 0.9rem;
+  color: var(--texte-attenue);
+}
+
+.cta {
+  text-align: center;
+  color: var(--texte-attenue);
+  font-size: 0.95rem;
+  margin-top: calc(var(--unite) * 3);
+}
+
+.erreur {
+  color: var(--alerte);
+  margin-top: var(--unite);
+  font-size: 0.95rem;
+}
+
+.pied {
+  text-align: center;
+  color: var(--texte-attenue);
+  font-size: 0.8rem;
+  margin-top: calc(var(--unite) * 4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
