@@ -257,6 +257,47 @@ input[type="text"]:focus {
   font-size: 0.95rem;
 }
 
+/* Pad de signature */
+.pad-canvas {
+  display: block;
+  width: 100%;
+  height: 200px;
+  background: var(--surface-alt);
+  border: 1px dashed var(--bordure);
+  border-radius: calc(var(--rayon) - 4px);
+  touch-action: none; /* le geste trace, il ne fait pas défiler la page */
+  cursor: crosshair;
+}
+.pad-barre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--unite);
+}
+.pad-indice {
+  color: var(--texte-attenue);
+  font-size: 0.85rem;
+}
+.lien {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.lien:disabled {
+  color: var(--texte-attenue);
+  cursor: default;
+}
+.note-demo {
+  background: var(--info-fond);
+  border: 1px solid var(--info);
+  border-radius: calc(var(--rayon) - 4px);
+  padding: calc(var(--unite) * 1.5);
+  margin-top: calc(var(--unite) * 2);
+}
+
 .pied {
   text-align: center;
   color: var(--texte-attenue);

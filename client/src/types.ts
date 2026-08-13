@@ -18,3 +18,39 @@ export interface RapportVerification {
   contenu?: "efface";
   signataires?: SignataireRapporte[];
 }
+
+// ─── Détail d'enveloppe (parcours signataire) ───────────────────
+
+export type StatutSignataire = "en_attente" | "ouverte" | "signee" | "refusee";
+export type StatutEnveloppe =
+  | "brouillon"
+  | "attente_validation"
+  | "envoyee"
+  | "partiellement_signee"
+  | "complete"
+  | "scellee"
+  | "refusee"
+  | "expiree";
+
+export interface SignataireDetail {
+  id: string;
+  nomDeclare: string;
+  statut: StatutSignataire;
+  niveauIdentiteExige: NiveauIdentite;
+  dateSignature: string | null;
+}
+
+export interface EnveloppeDetail {
+  id: string;
+  statut: StatutEnveloppe;
+  mode: "sequentiel" | "parallele";
+  signataires: SignataireDetail[];
+}
+
+/** Un point du tracé de signature (I1 : refait à chaque signature, jamais rejoué). */
+export type PointTrace = [number, number];
+
+export interface Trace {
+  horodatageCapture: string;
+  traits: PointTrace[];
+}

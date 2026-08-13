@@ -10,14 +10,15 @@
 | Domaine | État |
 |---|---|
 | 📋 Conception (le plan complet) | ✅ Fait |
-| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 74 tests) |
+| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 76 tests) |
 | 🌐 API (l'appli répond à des requêtes) | ✅ Fait |
 | ☁️ Sauvegarde en ligne (GitHub) | ✅ Fait |
 | 🗄️ Base de données (Supabase) | ✅ Fait (12 tables) |
 | 👤 Comptes / inscription vérifiée | ✅ Fait côté backend (chemin « validé », 60 tests) — écran + revue manuelle à venir |
 | 🔌 Brancher l'appli entière sur la base | ✅ Fait — boucle complète (inscrire→créer→envoyer→signer→sceller) prouvée sur Postgres |
 | 🔍 Vérification publique (authentique ou altéré ?) | ✅ Fait — backend + **premier écran** (page publique) |
-| 🖥️ L'écran que verront les utilisateurs | 🔄 Commencé — 1er écran fait (vérification) ; le reste à venir |
+| ✍️ Tunnel de signature invité (écran) | ✅ Fait côté écran — tracé + OTP (simulé) → scellement |
+| 🖥️ L'écran que verront les utilisateurs | 🔄 Commencé — vérification + signature ; le reste à venir |
 | 🚀 Mise en ligne pour de vrais clients | ⏳ À faire (dépend de décisions) |
 
 ---
@@ -71,6 +72,13 @@
 - Branché sur le vrai backend (`POST /v1/verification`, proxy dev). **Observé de bout en bout** : document authentique → intègre ; document trafiqué → « modifié après signature ». Build de prod OK (~48 kB gzip), 6 tests front.
 - Pour le voir : `npm run dev -w @paraphe/backend-de-confiance` (un terminal) + `npm run dev -w @paraphe/client` (un autre) → http://localhost:5173.
 
+### ✍️ Tunnel de signature invité (écran)
+- L'écran où un invité **signe un document reçu**, gratuitement, sans compte : ouvrir (`/signer/<enveloppe>/<signataire>`) → **tracer sa signature** (refaite à l'instant, jamais rejouée — I1) → **code de vérification frais** (I2) → confirmation ; scellement automatique au dernier signataire.
+- Pad de signature au doigt (canvas), messages d'erreur clairs (tour non venu, déjà scellé, code expiré…).
+- Le **code OTP est simulé** en attendant le vrai WhatsApp/SMS (décision ouverte n°4) — indiqué honnêtement à l'écran.
+- Le backend expose désormais le **niveau d'identité exigé** par signataire (pour piloter l'écran).
+- **Observé bout en bout** au niveau HTTP : ouvrir → OTP → signer → scellé ; un rejeu du même code est rejeté. **76 tests verts** (68 backend + 8 front).
+
 ---
 
 ## 🔄 En cours (commencé, pas terminé)
@@ -84,8 +92,8 @@
 
 ### Prochaine étape (au choix)
 - **🔒 Règles d'accès (RLS) + authentification** : cloisonner qui voit quoi en base, une fois un vrai mécanisme de connexion en place.
+- **🖥️ Écrans émetteur** : créer/envoyer une enveloppe, tableau de bord, inscription — pour que la boucle soit pilotable sans curl.
 - **📁 Archive personnelle** (retrouver ses documents signés + télécharger le dossier de preuve).
-- **🖥️ Écrans suivants** : tunnel de signature invité, tableau de bord émetteur, inscription — maintenant que le socle front existe.
 
 ### Ensuite
 - **📁 Archive personnelle** (retrouver ses documents signés).
@@ -141,5 +149,11 @@
 - Page de vérification : dépôt d'un PDF ou arrivée via `/v/référence` → verdict clair (authentique / modifié / aucune correspondance) + signataires, niveaux, dates ; ne montre jamais le contenu ni le titre (I7).
 - Branchée sur le vrai backend (`POST /v1/verification`, proxy dev). Observé bout en bout au niveau HTTP (authentique = intègre, trafiqué = « modifié après signature »). Build prod ~48 kB gzip.
 - **74 tests verts** (68 backend + 6 front). Pour voir l'écran : backend `npm run dev -w @paraphe/backend-de-confiance` + client `npm run dev -w @paraphe/client` → http://localhost:5173.
+
+### 13 août 2026 — tunnel de signature invité (écran)
+- Deuxième écran : parcours de signature invité (`/signer/<enveloppe>/<signataire>`) — tracé au doigt (canvas, I1), OTP frais à l'instant (I2, simulé), confirmation, scellement auto.
+- Backend : GET enveloppe expose désormais `niveauIdentiteExige` + `mode` (pour piloter l'écran).
+- Mapping des codes d'erreur → messages humains (tour non venu, scellé, expiré…).
+- **76 tests verts** (68 backend + 8 front). Observé bout en bout au niveau HTTP (ouvrir → OTP → signer → scellé ; rejeu rejeté).
 
 *(Les prochaines dates s'ajouteront ici au fil de l'eau.)*

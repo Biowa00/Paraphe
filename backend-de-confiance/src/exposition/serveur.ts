@@ -187,10 +187,12 @@ export function construireServeur(c: Composition): FastifyInstance {
     return reply.send({
       id: agg.enveloppe.id,
       statut: agg.enveloppe.statut,
+      mode: agg.enveloppe.mode,
       signataires: agg.signataires.map((s) => ({
         id: s.id,
         nomDeclare: s.nomDeclare,
         statut: s.statut,
+        niveauIdentiteExige: s.niveauIdentiteExige,
         dateSignature: s.dateSignature,
       })),
       journal: agg.journal.lister().map((e) => ({
