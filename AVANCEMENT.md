@@ -20,6 +20,7 @@
 | ✍️ Tunnel de signature invité (écran) | ✅ Fait côté écran — tracé + OTP (simulé) → scellement |
 | 💳 Crédits Mobile Money (recharge, solde, conso) | ✅ Fait côté backend — achat, webhook idempotent, débit à l'envoi (paiement simulé) |
 | 🔑 Connexion (qui est authentifié) | ✅ Fait côté backend — téléphone + OTP → session ; émission réservée aux comptes vérifiés |
+| 🖥️ Espace émetteur (écran) | ✅ Fait — connexion + créer/envoyer + liens de signature + recharge |
 | 🖥️ L'écran que verront les utilisateurs | 🔄 Commencé — vérification + signature ; le reste à venir |
 | 🚀 Mise en ligne pour de vrais clients | ⏳ À faire (dépend de décisions) |
 
@@ -74,6 +75,13 @@
 - Branché sur le vrai backend (`POST /v1/verification`, proxy dev). **Observé de bout en bout** : document authentique → intègre ; document trafiqué → « modifié après signature ». Build de prod OK (~48 kB gzip), 6 tests front.
 - Pour le voir : `npm run dev -w @paraphe/backend-de-confiance` (un terminal) + `npm run dev -w @paraphe/client` (un autre) → http://localhost:5173.
 
+### 🖥️ Espace émetteur (écran)
+- **Troisième écran** (`/emettre`) : se connecter (téléphone + code démo) → **tableau de bord**.
+- Depuis le tableau de bord : voir son **solde**, **créer une enveloppe** (titre, ordre, signataires nom/téléphone/niveau, dépôt du PDF) → **créer & envoyer** (1 crédit consommé) → obtenir les **liens de signature** personnels (à copier) + la **référence de vérification**.
+- **Recharge** intégrée : choisir un pack → « J'ai payé (simuler) » → le solde augmente.
+- Jeton de session stocké côté client (aucun secret) ; session expirée → retour à la connexion. Gère `credits_insuffisants` (invite à recharger).
+- **Observé bout en bout au niveau HTTP** : inscription → connexion → créer → envoyer (solde 3→2) → recharge (→12). Pour le voir : `npm run dev` (backend + client) puis http://localhost:5173/emettre.
+
 ### 🔑 Connexion & autorisation (backend)
 - **Se connecter** par **téléphone + code OTP frais** (I2) → le backend de confiance délivre un **jeton de session signé** (HS256 ; secret en env dev → KMS en prod). `POST /v1/connexion`.
 - **Émission protégée** : créer/envoyer une enveloppe exige une **session valide** ; seul un compte **vérifié** peut émettre (I7). Le créateur est **l'utilisateur connecté** (jamais un champ du corps). Les crédits (solde/achat) sont ceux du connecté. Les invités (signature) restent **sans compte** (I8).
@@ -110,8 +118,8 @@
 ## ⏳ À faire
 
 ### Prochaine étape (au choix)
-- **🖥️ Écrans émetteur** : connexion + créer/envoyer une enveloppe + recharger son solde (la connexion backend est prête).
-- **📁 Archive personnelle** (S6) : lister ses documents + télécharger le dossier de preuve (la connexion permet de cloisonner).
+- **📁 Archive personnelle** (S6, dernière tranche V1) : lister ses documents + télécharger le dossier de preuve (la connexion permet de cloisonner).
+- **🎨 Design** : reprendre le style (par petits pas, avec une référence qui te plaît).
 - **🔒 RLS en dur** (durcissement) : isolation au niveau base avec un rôle DB restreint.
 
 ### Ensuite
@@ -181,6 +189,11 @@
 - **Émission protégée** : créer/envoyer + crédits exigent une session ; seul un compte **vérifié** peut émettre (I7) ; créateur = utilisateur connecté.
 - Adaptateur session (JWT HS256 sans dépendance), `parTelephone` (mémoire/Postgres). Correctif : crédits de bienvenue dans le registre partagé en dev.
 - **92 tests verts** (84 backend + 8 front). Prouvé contre la vraie base (`npm run verifier:connexion`). RLS en dur reportée (rôle DB restreint).
+
+### 13 août 2026 — espace émetteur (écran)
+- Troisième écran `/emettre` : connexion (téléphone + code démo) → tableau de bord (solde, créer/envoyer une enveloppe, liens de signature, recharge).
+- Session stockée côté client (jeton signé, aucun secret) ; en-têtes d'autorisation sur les appels émetteur.
+- Observé bout en bout au niveau HTTP (inscription → connexion → créer → envoyer solde 3→2 → recharge →12). Build front OK. « Les deux » (connexion + écran émetteur) livrés.
 
 ### 13 août 2026 — tunnel de signature invité (écran)
 - Deuxième écran : parcours de signature invité (`/signer/<enveloppe>/<signataire>`) — tracé au doigt (canvas, I1), OTP frais à l'instant (I2, simulé), confirmation, scellement auto.

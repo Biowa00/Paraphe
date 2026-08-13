@@ -305,6 +305,97 @@ input[type="text"]:focus {
   margin-top: calc(var(--unite) * 4);
 }
 
+/* Espace émetteur */
+.entete-emetteur {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.choix-mode {
+  display: flex;
+  gap: calc(var(--unite) * 2);
+  flex-wrap: wrap;
+  font-size: 0.95rem;
+}
+.ligne-signataire {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: var(--unite);
+  align-items: center;
+  margin-bottom: var(--unite);
+}
+.ligne-signataire input,
+.ligne-signataire select {
+  width: 100%;
+  padding: calc(var(--unite) * 1.25);
+  font-size: 0.95rem;
+  border: 1px solid var(--bordure);
+  border-radius: calc(var(--rayon) - 4px);
+  background: var(--surface);
+  color: var(--texte);
+}
+@media (max-width: 560px) {
+  .ligne-signataire {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.packs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--unite);
+}
+.pack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: calc(var(--unite) * 2);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+}
+.pack:hover {
+  border-color: var(--accent);
+}
+.pack-qte {
+  font-weight: 700;
+}
+.pack-prix {
+  color: var(--texte-attenue);
+  font-size: 0.9rem;
+}
+.liens-signataires {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--unite);
+}
+.liens-signataires li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--unite);
+  padding: calc(var(--unite) * 1.5) 0;
+  border-bottom: 1px solid var(--bordure);
+}
+.lien-url {
+  flex: 1;
+  min-width: 200px;
+  font-size: 0.8rem;
+  color: var(--texte-attenue);
+  word-break: break-all;
+  background: var(--surface-alt);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+code {
+  font-size: 0.85rem;
+  background: var(--surface-alt);
+  padding: 2px 6px;
+  border-radius: 6px;
+  word-break: break-all;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

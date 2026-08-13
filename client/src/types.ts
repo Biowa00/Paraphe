@@ -47,6 +47,27 @@ export interface EnveloppeDetail {
   signataires: SignataireDetail[];
 }
 
+// ─── Espace émetteur ────────────────────────────────────────────
+
+export interface Pack {
+  packId: string;
+  quantite: number;
+  prix: number;
+  devise: string;
+}
+
+export interface Solde {
+  solde: number;
+  dontBienvenue: number;
+}
+
+export interface SignataireACreer {
+  nomDeclare: string;
+  telephone: string;
+  ordre: number;
+  niveauIdentiteExige: NiveauIdentite;
+}
+
 /** Un point du tracé de signature (I1 : refait à chaque signature, jamais rejoué). */
 export type PointTrace = [number, number];
 
