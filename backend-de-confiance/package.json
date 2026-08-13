@@ -10,6 +10,7 @@
     "verifier:depot": "tsx src/scripts/verifier-depot-postgres.ts",
     "verifier:inscription": "tsx src/scripts/verifier-inscription-postgres.ts",
     "verifier:boucle": "tsx src/scripts/verifier-boucle-postgres.ts",
+    "verifier:verification": "tsx src/scripts/verifier-verification-postgres.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

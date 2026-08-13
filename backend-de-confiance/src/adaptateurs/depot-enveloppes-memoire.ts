@@ -1,6 +1,10 @@
 import { CODES_ERREUR, ErreurMetier } from "@paraphe/partage";
 import type { EnveloppeAgg } from "../domaine/modele";
-import type { DepotEnveloppes } from "../domaine/ports";
+import type {
+  DepotEnveloppes,
+  DepotVerification,
+  EnveloppeVerifiable,
+} from "../domaine/ports";
 
 /**
  * DEV UNIQUEMENT — dépôt en mémoire. En production : Postgres (07_database).
@@ -9,7 +13,7 @@ import type { DepotEnveloppes } from "../domaine/ports";
  * « figé après scellement » compare bien l'état PRÉCÉDENT. Le journal, lui, est
  * partagé : c'est un objet en ajout seul (I6), le partager est voulu.
  */
-export class DepotEnveloppesMemoire implements DepotEnveloppes {
+export class DepotEnveloppesMemoire implements DepotEnveloppes, DepotVerification {
   readonly #store = new Map<string, EnveloppeAgg>();
 
   async creer(agg: EnveloppeAgg): Promise<void> {
@@ -44,6 +48,37 @@ export class DepotEnveloppesMemoire implements DepotEnveloppes {
       );
     }
     this.#store.set(agg.enveloppe.id, this.#copier(agg));
+  }
+
+  // ─── Vérification publique (lecture seule) ───────────────────
+
+  async parRef(ref: string): Promise<EnveloppeVerifiable | null> {
+    const agg = this.#store.get(ref);
+    return agg ? this.#versVerifiable(agg) : null;
+  }
+
+  async parEmpreinte(empreinte: string): Promise<EnveloppeVerifiable | null> {
+    for (const agg of this.#store.values()) {
+      if (agg.enveloppe.statut === "scellee" && agg.enveloppe.documentHashOrigine === empreinte) {
+        return this.#versVerifiable(agg);
+      }
+    }
+    return null;
+  }
+
+  #versVerifiable(agg: EnveloppeAgg): EnveloppeVerifiable {
+    return {
+      id: agg.enveloppe.id,
+      statut: agg.enveloppe.statut,
+      documentHashOrigine: agg.enveloppe.documentHashOrigine,
+      dateScellement: agg.enveloppe.dateScellement,
+      cleDetruite: false, // pas de coffre de clés en mémoire (dev)
+      signataires: agg.signataires.map((s) => ({
+        nomDeclare: s.nomDeclare,
+        niveau: s.niveauIdentiteExige,
+        dateSignature: s.dateSignature,
+      })),
+    };
   }
 
   #copier(agg: EnveloppeAgg): EnveloppeAgg {

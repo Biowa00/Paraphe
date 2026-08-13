@@ -53,6 +53,8 @@ Construite en tranches verticales, dans cet ordre :
   - ⏳ *Suite* : file de **revue manuelle** opérateur (scores intermédiaires → `en_revue`, chemin interne `03_rbac`) ; tunnel 3 écrans multipart avec **envoi + purge réels des images (I5)** ; branchement des fournisseurs réels OCR/vivacité/OTP (décision ouverte n°4) ; hacheur NPI adossé au **KMS** (pepper hors process).
 - **S3 · Boucle de signature (le cœur).** Créer/envoyer une enveloppe → signature invité (OTP frais + tracé, niveaux OTP-seul/Standard/Renforcé) → scellement automatique. *La tranche qui rend le produit réel.*
 - **S4 · Vérification publique.** La page sans compte + endpoint d'ancrage. *Le levier d'acquisition ; chaque document scellé y ramène du monde.*
+  - ✅ *Vérification d'intégrité (backend)* : `POST /v1/verification` (sans compte) — dépôt document/référence → intègre/altéré + signataires/niveaux/dates, **sans divulguer le contenu ni le titre (I6/I7)** ; document inconnu ou brouillon → réponse neutre. Port `DepotVerification` + adaptateurs mémoire/Postgres. **68 tests verts** ; prouvé contre la vraie base (`npm run verifier:verification`).
+  - ⏳ *Suite* : **re-vérification du cachet serveur** (clé de scellement stable au KMS) ; **ancrage public quotidien** + `GET /v1/ancrage/{date}` (support = décision ouverte n°6) ; **page publique** (UI, `09_components`).
 - **S5 · Crédits Mobile Money.** Solde, packs, 3 crédits de bienvenue non expirants, webhook idempotent. *L'encaissement.*
 - **S6 · Archive personnelle.** Liste, consultation, téléchargement du dossier de preuve.
 

@@ -10,12 +10,13 @@
 | Domaine | État |
 |---|---|
 | 📋 Conception (le plan complet) | ✅ Fait |
-| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 49 tests) |
+| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 68 tests) |
 | 🌐 API (l'appli répond à des requêtes) | ✅ Fait |
 | ☁️ Sauvegarde en ligne (GitHub) | ✅ Fait |
 | 🗄️ Base de données (Supabase) | ✅ Fait (12 tables) |
 | 👤 Comptes / inscription vérifiée | ✅ Fait côté backend (chemin « validé », 60 tests) — écran + revue manuelle à venir |
 | 🔌 Brancher l'appli entière sur la base | ✅ Fait — boucle complète (inscrire→créer→envoyer→signer→sceller) prouvée sur Postgres |
+| 🔍 Vérification publique (authentique ou altéré ?) | ✅ Fait côté backend — écran public à venir |
 | 🖥️ L'écran que verront les utilisateurs | ⏳ À faire |
 | 🚀 Mise en ligne pour de vrais clients | ⏳ À faire (dépend de décisions) |
 
@@ -57,23 +58,29 @@
 - **Prouvé de bout en bout** : `npm run verifier:boucle` (créateur vérifié réel, document scellé, journal ordonné des 5 événements, cachet vérifiable), le tout dans une transaction annulée → **zéro déchet**, même si un scellé est indestructible (I3).
 - Le serveur peut démarrer en mode base avec `PARAPHE_PERSISTENCE=postgres` (défaut : mémoire, pour le dev sans dépendance).
 
+### 🔍 Vérification publique (le moteur d'acquisition)
+- N'importe qui peut vérifier un document **sans compte** : on dépose le fichier (ou on saisit la référence du cachet), et le serveur répond **intègre** ou **altéré** (`POST /v1/verification`).
+- Réponse : intégrité, **signataires + niveau + date**, statut — **jamais le contenu ni le titre** (I7). Document inconnu ou brouillon → réponse **neutre**, sans fuite.
+- **Prouvé contre la vraie base** : document authentique = intègre, document trafiqué = rejeté, recherche par empreinte OK (`npm run verifier:verification`, transaction annulée).
+- Périmètre de cette tranche : la couche **intégrité** (empreinte SHA-256). La **re-vérification du cachet serveur** et l'**ancrage public quotidien** viendront avec la clé de scellement stable (KMS) et le support d'ancrage (décisions ouvertes n°6).
+
 ---
 
 ## 🔄 En cours (commencé, pas terminé)
 
 - **Chemins d'inscription non « validé ».** Quand le face-match est **intermédiaire**, le dossier part en **revue manuelle** (opérateur) — cette file d'attente et l'écran opérateur ne sont pas encore construits. Le tunnel en 3 écrans avec **envoi réel des photos** (et leur purge) viendra avec l'interface.
+- **Vérification publique — raffinements.** L'intégrité marche ; restent le **cachet re-vérifiable** (clé KMS stable) et l'**ancrage quotidien** (« même nous ne pouvons pas modifier »).
 
 ---
 
 ## ⏳ À faire
 
 ### Prochaine étape (au choix)
-- **🔍 Page de vérification publique** (S4) : prouver publiquement qu'un document est authentique — le moteur d'acquisition, sans compte requis.
 - **🔒 Règles d'accès (RLS) + authentification** : cloisonner qui voit quoi en base, une fois un vrai mécanisme de connexion en place.
+- **📁 Archive personnelle** (retrouver ses documents signés + télécharger le dossier de preuve).
+- **🖥️ Premier écran** : la page publique de vérification (le backend est prêt) — visible et gratifiant.
 
 ### Ensuite
-- **🔒 Règles d'accès détaillées (RLS)** dans la base — une fois qu'on sait comment un utilisateur prouve son identité.
-- **🔍 Page de vérification publique** (le moteur d'acquisition : prouver qu'un document est authentique).
 - **📁 Archive personnelle** (retrouver ses documents signés).
 
 ### Plus tard
@@ -114,5 +121,12 @@
 - Dépôts « liés à un client » (enveloppes + utilisateurs) pour enchaîner plusieurs opérations dans une seule transaction.
 - `compositionPostgres()` + interrupteur `PARAPHE_PERSISTENCE=postgres` (le serveur peut tourner sur la vraie base).
 - Boucle complète **inscrire → créer → envoyer → signer → sceller** prouvée contre la vraie base : `npm run verifier:boucle` (journal ordonné des 5 événements, cachet vérifiable, transaction annulée, zéro déchet). 60 tests toujours verts.
+
+### 13 août 2026 — vérification publique (backend)
+- `POST /v1/verification` (sans compte) : dépôt d'un document ou d'une référence → **intègre / altéré** + signataires, niveaux, dates. Ne divulgue jamais le contenu ni le titre (I7) ; document inconnu ou brouillon → réponse neutre.
+- Cas couverts : document authentique, altéré (`modifie_apres_signature`), inconnu (`aucune_correspondance`), recherche par empreinte, référence seule, crypto-shredding (`contenu: "efface"`).
+- Port `DepotVerification` + adaptateurs mémoire et Postgres (lecture seule). **68 tests verts** (+8).
+- Prouvé contre la vraie base : `npm run verifier:verification` (authentique = intègre, trafiqué = rejeté, transaction annulée).
+- Périmètre : couche intégrité (SHA-256). Cachet re-vérifiable + ancrage quotidien = raffinements suivants (clé KMS stable, support d'ancrage).
 
 *(Les prochaines dates s'ajouteront ici au fil de l'eau.)*

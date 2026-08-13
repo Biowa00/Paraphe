@@ -5,6 +5,7 @@ import { envoyerEnveloppe } from "../cas-usage/envoyer-enveloppe";
 import { traiterSignature } from "../cas-usage/traiter-signature";
 import { scellerEnveloppe } from "../cas-usage/sceller-enveloppe";
 import { inscrireCompteVerifie } from "../cas-usage/inscrire-compte-verifie";
+import { verifierDocument } from "../cas-usage/verifier-document";
 import type { DossierPreuve } from "../domaine/dossier-preuve";
 import type { Composition } from "./composition";
 import { envoyerErreur } from "./erreurs-http";
@@ -49,6 +50,15 @@ const schemaOtp = z.object({
   action: z.enum(["inscription", "signature", "connexion"]),
 });
 
+const schemaVerification = z
+  .object({
+    documentBase64: z.string().min(1).optional(),
+    enveloppeRef: z.string().min(1).optional(),
+  })
+  .refine((d) => Boolean(d.documentBase64 || d.enveloppeRef), {
+    message: "Fournir un document ou une référence d'enveloppe.",
+  });
+
 const schemaInscription = z.object({
   telephone: z.string().min(1),
   otpTicket: z.string().min(1),
@@ -71,6 +81,20 @@ export function construireServeur(c: Composition): FastifyInstance {
     const parse = schemaOtp.safeParse(req.body);
     if (!parse.success) return requeteInvalide(reply, "Action OTP invalide.");
     return reply.send({ ticket: c.otp.emettreTicket(parse.data.action) });
+  });
+
+  // Vérification publique : sans compte, lecture seule, ne divulgue pas le contenu.
+  app.post("/v1/verification", async (req, reply) => {
+    const parse = schemaVerification.safeParse(req.body);
+    if (!parse.success) {
+      return requeteInvalide(reply, "Fournir un document ou une référence d'enveloppe.");
+    }
+    try {
+      const rapport = await verifierDocument(parse.data, { depot: c.depotVerification });
+      return reply.send(rapport);
+    } catch (e) {
+      return envoyerErreur(reply, e);
+    }
   });
 
   app.post("/v1/inscription", async (req, reply) => {

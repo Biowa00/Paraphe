@@ -2,6 +2,7 @@
 // stockage objet, cachet serveur…) les implémentent. Le domaine dépend
 // d'abstractions, jamais d'un fournisseur concret (cf. 04_structure_rules/02).
 
+import type { NiveauIdentite, StatutEnveloppe } from "@paraphe/partage";
 import type { EnveloppeAgg } from "./modele";
 import type { CompteVerifieAgg } from "./utilisateur";
 
@@ -109,6 +110,39 @@ export interface ResultatBiometrie {
  */
 export interface ServiceBiometrie {
   verifier(refSelfie: string, refPortrait: string): Promise<ResultatBiometrie>;
+}
+
+// ─── Vérification publique (lecture seule, sans compte) ───────
+
+export interface SignataireVerifiable {
+  nomDeclare: string;
+  niveau: NiveauIdentite;
+  dateSignature: string | null;
+}
+
+/**
+ * Projection publique d'une enveloppe : uniquement ce qui sert à la preuve.
+ * N'expose JAMAIS le contenu ni le titre (chiffré au repos) — cohérent avec I7.
+ */
+export interface EnveloppeVerifiable {
+  id: string;
+  statut: StatutEnveloppe;
+  /** Empreinte SHA-256 figée à l'envoi (couche intégrité). */
+  documentHashOrigine: string | null;
+  dateScellement: string | null;
+  /** Clé détruite (crypto-shredding) : le contenu n'est plus lisible (I5/effacement). */
+  cleDetruite: boolean;
+  signataires: SignataireVerifiable[];
+}
+
+/**
+ * Dépôt de lecture pour la vérification publique. Ne rend que la projection
+ * publique ; `parEmpreinte` ne renvoie qu'une enveloppe SCELLÉE (on ne divulgue
+ * pas les brouillons).
+ */
+export interface DepotVerification {
+  parRef(ref: string): Promise<EnveloppeVerifiable | null>;
+  parEmpreinte(empreinte: string): Promise<EnveloppeVerifiable | null>;
 }
 
 /** Dépôt des comptes utilisateurs et de leur vérification d'identité. */

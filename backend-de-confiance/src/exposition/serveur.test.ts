@@ -95,6 +95,53 @@ describe("API HTTP", () => {
     expect(r.statusCode).toBe(404);
   });
 
+  it("vérification publique : document scellé → integre true ; altéré → false", async () => {
+    // Sceller une enveloppe via la boucle (document = "Bail").
+    const { id, sigId } = await creerEtEnvoyer(app);
+    const otp = await app.inject({
+      method: "POST",
+      url: "/v1/otp/verifie",
+      payload: { action: "signature" },
+    });
+    const sign = await app.inject({
+      method: "POST",
+      url: `/v1/enveloppes/${id}/signature`,
+      payload: {
+        signataireId: sigId,
+        niveauVerifie: "standard",
+        otpTicket: otp.json().ticket,
+        trace: TRACE,
+        acteur: "bob",
+      },
+    });
+    expect(sign.json().statut).toBe("scellee");
+
+    // Document authentique → intègre.
+    const ok = await app.inject({
+      method: "POST",
+      url: "/v1/verification",
+      payload: { documentBase64: Buffer.from("Bail").toString("base64"), enveloppeRef: id },
+    });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().integre).toBe(true);
+    expect(ok.json().signataires).toHaveLength(1);
+    // Ne divulgue pas le titre (I7).
+    expect(JSON.stringify(ok.json())).not.toContain("Bail");
+
+    // Document altéré → non intègre, sans fuite.
+    const ko = await app.inject({
+      method: "POST",
+      url: "/v1/verification",
+      payload: { documentBase64: Buffer.from("Bail modifié").toString("base64"), enveloppeRef: id },
+    });
+    expect(ko.json().integre).toBe(false);
+    expect(ko.json().raison).toBe("modifie_apres_signature");
+
+    // Sans document ni référence → 400.
+    const vide = await app.inject({ method: "POST", url: "/v1/verification", payload: {} });
+    expect(vide.statusCode).toBe(400);
+  });
+
   it("POST /v1/inscription → compte vérifié + identifiant public + 3 crédits", async () => {
     const otp = await app.inject({
       method: "POST",

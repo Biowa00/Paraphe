@@ -5,6 +5,7 @@ import { DepotEnveloppesMemoire } from "../adaptateurs/depot-enveloppes-memoire"
 import { DepotUtilisateursMemoire } from "../adaptateurs/depot-utilisateurs-memoire";
 import { DepotEnveloppesPostgres } from "../adaptateurs/depot-enveloppes-postgres";
 import { DepotUtilisateursPostgres } from "../adaptateurs/depot-utilisateurs-postgres";
+import { DepotVerificationPostgres } from "../adaptateurs/depot-verification-postgres";
 import { GuichetOtpLocalDev } from "../adaptateurs/guichet-otp-local-dev";
 import { ChiffreurLocalDev } from "../adaptateurs/chiffreur-local-dev";
 import { StockageLocalDev } from "../adaptateurs/stockage-local-dev";
@@ -13,7 +14,11 @@ import { HorlogeSysteme } from "../adaptateurs/horloge-systeme";
 import { HacheurNpiLocalDev } from "../adaptateurs/hacheur-npi-local-dev";
 import { OcrPieceLocalDev } from "../adaptateurs/ocr-piece-local-dev";
 import { BiometrieLocalDev } from "../adaptateurs/biometrie-local-dev";
-import type { DepotEnveloppes, DepotUtilisateurs } from "../domaine/ports";
+import type {
+  DepotEnveloppes,
+  DepotUtilisateurs,
+  DepotVerification,
+} from "../domaine/ports";
 
 /**
  * Racine de composition : assemble les adaptateurs concrets et les fournit aux
@@ -23,6 +28,7 @@ import type { DepotEnveloppes, DepotUtilisateurs } from "../domaine/ports";
 export interface Composition {
   depot: DepotEnveloppes;
   depotUtilisateurs: DepotUtilisateurs;
+  depotVerification: DepotVerification;
   otp: GuichetOtpLocalDev;
   chiffreur: ChiffreurLocalDev;
   stockage: StockageLocalDev;
@@ -57,8 +63,12 @@ function servicesCommuns() {
 
 /** Composition DEV : tout en mémoire, aucune dépendance externe. */
 export function compositionDev(): Composition {
+  // Une seule instance mémoire sert le dépôt d'écriture ET la vérification :
+  // la page publique voit les enveloppes réellement scellées par le serveur.
+  const enveloppes = new DepotEnveloppesMemoire();
   return {
-    depot: new DepotEnveloppesMemoire(),
+    depot: enveloppes,
+    depotVerification: enveloppes,
     depotUtilisateurs: new DepotUtilisateursMemoire(),
     ...servicesCommuns(),
   };
@@ -80,6 +90,7 @@ export function compositionPostgres(pool?: Pool): Composition {
   return {
     depot: new DepotEnveloppesPostgres(p),
     depotUtilisateurs: new DepotUtilisateursPostgres(p),
+    depotVerification: new DepotVerificationPostgres(p),
     ...servicesCommuns(),
   };
 }
