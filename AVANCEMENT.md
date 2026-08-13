@@ -10,7 +10,7 @@
 | Domaine | État |
 |---|---|
 | 📋 Conception (le plan complet) | ✅ Fait |
-| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 92 tests) |
+| ⚙️ Le cœur : signer & sceller un document | ✅ Fait (marche, 93 tests) |
 | 🌐 API (l'appli répond à des requêtes) | ✅ Fait |
 | ☁️ Sauvegarde en ligne (GitHub) | ✅ Fait |
 | 🗄️ Base de données (Supabase) | ✅ Fait (12 tables) |
@@ -21,6 +21,7 @@
 | 💳 Crédits Mobile Money (recharge, solde, conso) | ✅ Fait côté backend — achat, webhook idempotent, débit à l'envoi (paiement simulé) |
 | 🔑 Connexion (qui est authentifié) | ✅ Fait côté backend — téléphone + OTP → session ; émission réservée aux comptes vérifiés |
 | 🖥️ Espace émetteur (écran) | ✅ Fait — connexion + créer/envoyer + liens de signature + recharge |
+| 📁 Archive personnelle | ✅ Fait — liste « mes documents » cloisonnée (téléchargement du dossier de preuve à venir) |
 | 🖥️ L'écran que verront les utilisateurs | 🔄 Commencé — vérification + signature ; le reste à venir |
 | 🚀 Mise en ligne pour de vrais clients | ⏳ À faire (dépend de décisions) |
 
@@ -75,6 +76,12 @@
 - Branché sur le vrai backend (`POST /v1/verification`, proxy dev). **Observé de bout en bout** : document authentique → intègre ; document trafiqué → « modifié après signature ». Build de prod OK (~48 kB gzip), 6 tests front.
 - Pour le voir : `npm run dev -w @paraphe/backend-de-confiance` (un terminal) + `npm run dev -w @paraphe/client` (un autre) → http://localhost:5173.
 
+### 📁 Archive personnelle (S6)
+- **Mes documents** : `GET /v1/enveloppes` (session) liste les enveloppes que j'ai créées — statut, dates, signataires. **Cloisonné** : chacun ne voit **que les siennes** (prouvé : un autre émetteur voit 0). Le **titre m'est visible** (c'est mon document).
+- À l'écran (espace émetteur) : section **« Mes documents »** avec badge de statut, lien **Vérifier**, et copie des **liens de signature** pour les signataires en attente.
+- **Prouvé contre la vraie base** (intégré à `npm run verifier:boucle`) : le créateur retrouve son enveloppe scellée, un autre identifiant n'en voit aucune.
+- Reste à faire : **téléchargement du dossier de preuve** (nécessite de le persister au scellement — aujourd'hui il est produit et renvoyé, pas stocké).
+
 ### 🖥️ Espace émetteur (écran)
 - **Troisième écran** (`/emettre`) : se connecter (téléphone + code démo) → **tableau de bord**.
 - Depuis le tableau de bord : voir son **solde**, **créer une enveloppe** (titre, ordre, signataires nom/téléphone/niveau, dépôt du PDF) → **créer & envoyer** (1 crédit consommé) → obtenir les **liens de signature** personnels (à copier) + la **référence de vérification**.
@@ -118,9 +125,12 @@
 ## ⏳ À faire
 
 ### Prochaine étape (au choix)
-- **📁 Archive personnelle** (S6, dernière tranche V1) : lister ses documents + télécharger le dossier de preuve (la connexion permet de cloisonner).
 - **🎨 Design** : reprendre le style (par petits pas, avec une référence qui te plaît).
+- **📄 Persister le dossier de preuve** → activer son **téléchargement** + la re-vérification du cachet.
 - **🔒 RLS en dur** (durcissement) : isolation au niveau base avec un rôle DB restreint.
+- **🔌 Brancher les vrais services** (SMS/WhatsApp, OCR, Mobile Money, KMS, stockage) — dépend des décisions ouvertes.
+
+> **V1 fonctionnelle : bouclée de bout en bout** — inscription → connexion → émettre → signer → sceller → vérifier → archiver, avec crédits Mobile Money. Restent : vrais fournisseurs, durcissement (RLS/KMS), design, et démarches (APDP, localisation).
 
 ### Ensuite
 - **📁 Archive personnelle** (retrouver ses documents signés).
@@ -194,6 +204,12 @@
 - Troisième écran `/emettre` : connexion (téléphone + code démo) → tableau de bord (solde, créer/envoyer une enveloppe, liens de signature, recharge).
 - Session stockée côté client (jeton signé, aucun secret) ; en-têtes d'autorisation sur les appels émetteur.
 - Observé bout en bout au niveau HTTP (inscription → connexion → créer → envoyer solde 3→2 → recharge →12). Build front OK. « Les deux » (connexion + écran émetteur) livrés.
+
+### 13 août 2026 — archive personnelle (S6)
+- `GET /v1/enveloppes` (session) : **mes documents**, cloisonné (chacun ne voit que les siennes). Port `DepotArchive` + adaptateurs mémoire/Postgres.
+- Écran : section **« Mes documents »** (statut, lien Vérifier, copie des liens de signature) dans l'espace émetteur.
+- **93 tests verts** (85 backend + 8 front). Prouvé contre la vraie base (intégré à `verifier:boucle` : le créateur voit son scellé, un autre voit 0). Téléchargement du dossier de preuve = à venir (persistance requise).
+- **V1 fonctionnelle bouclée** : inscription → connexion → émettre → signer → sceller → vérifier → archiver.
 
 ### 13 août 2026 — tunnel de signature invité (écran)
 - Deuxième écran : parcours de signature invité (`/signer/<enveloppe>/<signataire>`) — tracé au doigt (canvas, I1), OTP frais à l'instant (I2, simulé), confirmation, scellement auto.

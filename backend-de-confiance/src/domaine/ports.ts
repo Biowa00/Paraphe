@@ -146,6 +146,24 @@ export interface DepotVerification {
   parEmpreinte(empreinte: string): Promise<EnveloppeVerifiable | null>;
 }
 
+// ─── Archive personnelle ──────────────────────────────────────
+
+/** Résumé d'une enveloppe pour l'archive de son créateur (titre visible par lui). */
+export interface EnveloppeResume {
+  id: string;
+  titre: string;
+  statut: StatutEnveloppe;
+  mode: "sequentiel" | "parallele";
+  dateCreation: string;
+  dateScellement: string | null;
+  signataires: { id: string; nomDeclare: string; statut: string }[];
+}
+
+/** Dépôt de lecture de l'archive : les enveloppes créées par un utilisateur. */
+export interface DepotArchive {
+  mesEnveloppes(createurId: string): Promise<EnveloppeResume[]>;
+}
+
 // ─── Crédits & paiements (Mobile Money) ───────────────────────
 
 /** Solde d'un titulaire = somme du registre (ajout seul), détaillé par type. */

@@ -1,8 +1,10 @@
 import { CODES_ERREUR, ErreurMetier } from "@paraphe/partage";
 import type { EnveloppeAgg } from "../domaine/modele";
 import type {
+  DepotArchive,
   DepotEnveloppes,
   DepotVerification,
+  EnveloppeResume,
   EnveloppeVerifiable,
 } from "../domaine/ports";
 
@@ -13,7 +15,7 @@ import type {
  * « figé après scellement » compare bien l'état PRÉCÉDENT. Le journal, lui, est
  * partagé : c'est un objet en ajout seul (I6), le partager est voulu.
  */
-export class DepotEnveloppesMemoire implements DepotEnveloppes, DepotVerification {
+export class DepotEnveloppesMemoire implements DepotEnveloppes, DepotVerification, DepotArchive {
   readonly #store = new Map<string, EnveloppeAgg>();
 
   async creer(agg: EnveloppeAgg): Promise<void> {
@@ -64,6 +66,32 @@ export class DepotEnveloppesMemoire implements DepotEnveloppes, DepotVerificatio
       }
     }
     return null;
+  }
+
+  // ─── Archive personnelle ─────────────────────────────────────
+
+  async mesEnveloppes(createurId: string): Promise<EnveloppeResume[]> {
+    const res: EnveloppeResume[] = [];
+    for (const agg of this.#store.values()) {
+      if (agg.enveloppe.createurId === createurId) res.push(this.#versResume(agg));
+    }
+    return res.sort((a, b) => b.dateCreation.localeCompare(a.dateCreation));
+  }
+
+  #versResume(agg: EnveloppeAgg): EnveloppeResume {
+    return {
+      id: agg.enveloppe.id,
+      titre: agg.enveloppe.titre,
+      statut: agg.enveloppe.statut,
+      mode: agg.enveloppe.mode,
+      dateCreation: agg.enveloppe.dateCreation,
+      dateScellement: agg.enveloppe.dateScellement,
+      signataires: agg.signataires.map((s) => ({
+        id: s.id,
+        nomDeclare: s.nomDeclare,
+        statut: s.statut,
+      })),
+    };
   }
 
   #versVerifiable(agg: EnveloppeAgg): EnveloppeVerifiable {

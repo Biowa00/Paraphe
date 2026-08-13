@@ -68,6 +68,16 @@ export interface SignataireACreer {
   niveauIdentiteExige: NiveauIdentite;
 }
 
+export interface EnveloppeResume {
+  id: string;
+  titre: string;
+  statut: StatutEnveloppe;
+  mode: "sequentiel" | "parallele";
+  dateCreation: string;
+  dateScellement: string | null;
+  signataires: { id: string; nomDeclare: string; statut: string }[];
+}
+
 /** Un point du tracé de signature (I1 : refait à chaque signature, jamais rejoué). */
 export type PointTrace = [number, number];
 

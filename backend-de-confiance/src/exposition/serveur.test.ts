@@ -225,6 +225,36 @@ describe("API HTTP", () => {
     expect(apres.json().solde).toBe(13);
   });
 
+  it("archive : je vois mes enveloppes, pas celles des autres", async () => {
+    const moi = await inscrireEtConnecter(app, "+22997000010", "2222222222221");
+    const creation = await app.inject({
+      method: "POST",
+      url: "/v1/enveloppes",
+      headers: { authorization: moi.auth },
+      payload: {
+        titre: "Mon contrat",
+        mode: "sequentiel",
+        signataires: [{ nomDeclare: "Bob", telephone: "+22990000002", ordre: 1, niveauIdentiteExige: "standard" }],
+      },
+    });
+    const id = creation.json().id;
+
+    // Mon archive contient mon enveloppe (titre visible par moi).
+    const mes = await app.inject({ method: "GET", url: "/v1/enveloppes", headers: { authorization: moi.auth } });
+    expect(mes.json().enveloppes).toHaveLength(1);
+    expect(mes.json().enveloppes[0].id).toBe(id);
+    expect(mes.json().enveloppes[0].titre).toBe("Mon contrat");
+
+    // Un autre émetteur ne voit pas mon enveloppe.
+    const autre = await inscrireEtConnecter(app, "+22997000011", "2222222222222");
+    const sesEnv = await app.inject({ method: "GET", url: "/v1/enveloppes", headers: { authorization: autre.auth } });
+    expect(sesEnv.json().enveloppes).toHaveLength(0);
+
+    // Sans session → 401.
+    const anon = await app.inject({ method: "GET", url: "/v1/enveloppes" });
+    expect(anon.statusCode).toBe(401);
+  });
+
   it("POST /v1/inscription → compte vérifié + identifiant public + 3 crédits", async () => {
     const otp = await app.inject({
       method: "POST",

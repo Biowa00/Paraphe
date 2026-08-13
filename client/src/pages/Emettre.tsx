@@ -8,13 +8,25 @@ import {
   listerPacks,
   acheter,
   simulerPaiement,
+  mesEnveloppes,
   fichierEnBase64,
   ErreurApi,
 } from "../api";
 import { messageErreur } from "../messages";
 import { libelleNiveau } from "../verdict";
 import { lireSession, effacerSession } from "../session";
-import type { NiveauIdentite, Pack, SignataireACreer } from "../types";
+import type { EnveloppeResume, NiveauIdentite, Pack, SignataireACreer } from "../types";
+
+const LIBELLE_STATUT: Record<string, { texte: string; ton: string }> = {
+  brouillon: { texte: "Brouillon", ton: "neutre" },
+  attente_validation: { texte: "En attente de validation", ton: "info" },
+  envoyee: { texte: "Envoyée", ton: "info" },
+  partiellement_signee: { texte: "Partiellement signée", ton: "info" },
+  complete: { texte: "Complète", ton: "ok" },
+  scellee: { texte: "Scellée", ton: "ok" },
+  refusee: { texte: "Refusée", ton: "alerte" },
+  expiree: { texte: "Expirée", ton: "alerte" },
+};
 
 interface Props {
   onDeconnecte: () => void;
@@ -37,6 +49,7 @@ export function Emettre({ onDeconnecte }: Props) {
   const session = lireSession();
   const [solde, setSolde] = useState<number | null>(null);
   const [packs, setPacks] = useState<Pack[]>([]);
+  const [docs, setDocs] = useState<EnveloppeResume[]>([]);
 
   const [titre, setTitre] = useState("");
   const [mode, setMode] = useState<"sequentiel" | "parallele">("sequentiel");
@@ -70,6 +83,7 @@ export function Emettre({ onDeconnecte }: Props) {
   async function rafraichir() {
     try {
       setSolde((await lireSolde()).solde);
+      setDocs(await mesEnveloppes());
     } catch (e) {
       gererErreur(e);
     }
@@ -257,6 +271,43 @@ export function Emettre({ onDeconnecte }: Props) {
               </button>
             ))}
           </div>
+        )}
+      </section>
+
+      {/* Mes documents */}
+      <section className="carte">
+        <p className="titre-section">Mes documents</p>
+        {docs.length === 0 ? (
+          <p className="note">Aucune enveloppe pour l'instant. Créez-en une ci-dessus.</p>
+        ) : (
+          <ul className="mes-docs">
+            {docs.map((d) => {
+              const st = LIBELLE_STATUT[d.statut] ?? { texte: d.statut, ton: "neutre" };
+              const enAttente = d.signataires.filter((s) => s.statut === "en_attente");
+              return (
+                <li key={d.id}>
+                  <div className="doc-tete">
+                    <span className="nom">{d.titre}</span>
+                    <span className={`badge-statut ${st.ton}`}>{st.texte}</span>
+                  </div>
+                  <div className="doc-actions">
+                    <a className="lien" href={`/v/${encodeURIComponent(d.id)}`}>Vérifier</a>
+                    {d.statut !== "scellee" &&
+                      enAttente.map((s) => (
+                        <button
+                          key={s.id}
+                          className="lien"
+                          type="button"
+                          onClick={() => copier(`${window.location.origin}/signer/${d.id}/${s.id}`)}
+                        >
+                          Copier le lien de {s.nomDeclare}
+                        </button>
+                      ))}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
     </main>

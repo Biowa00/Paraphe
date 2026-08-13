@@ -6,6 +6,7 @@ import {
 } from "../adaptateurs/depot-enveloppes-postgres";
 import { DepotUtilisateursSurClient } from "../adaptateurs/depot-utilisateurs-postgres";
 import { soldeDb, enregistrerCreditDb, debiterEnvoiDb } from "../adaptateurs/depot-credits-postgres";
+import { mesEnveloppesDb } from "../adaptateurs/depot-archive-postgres";
 import type { DepotCredits } from "../domaine/ports";
 import { GuichetOtpLocalDev } from "../adaptateurs/guichet-otp-local-dev";
 import { ChiffreurLocalDev } from "../adaptateurs/chiffreur-local-dev";
@@ -139,16 +140,25 @@ try {
   // 6. Recharger depuis la base et vérifier l'état final.
   const final = await depot.charger(enveloppeId);
   const typesJournal = final!.journal.lister().map((e) => e.type).join(",");
+
+  // 7. Archive : le créateur retrouve son enveloppe scellée (et pas un autre).
+  const mienne = await mesEnveloppesDb(client, createurId);
+  const autre = await mesEnveloppesDb(client, randomUUID());
+
   const ok =
     final !== null &&
     final.enveloppe.statut === "scellee" &&
     final.enveloppe.createurId === createurId &&
     typesJournal === "creee,envoyee,otp_valide,signee,scellee" &&
-    scell.dossierPreuve.cachet.signature.length > 0;
+    scell.dossierPreuve.cachet.signature.length > 0 &&
+    mienne.length === 1 &&
+    mienne[0]!.id === enveloppeId &&
+    mienne[0]!.statut === "scellee" &&
+    autre.length === 0;
 
   console.log(
     ok
-      ? "✅ Boucle complète prouvée sur Postgres (inscrire → créer → envoyer → signer → sceller)."
+      ? "✅ Boucle complète prouvée sur Postgres (inscrire → créer → envoyer → signer → sceller → archive)."
       : `❌ Boucle incohérente (statut=${final?.enveloppe.statut}, journal=${typesJournal}).`,
   );
   if (!ok) process.exitCode = 1;

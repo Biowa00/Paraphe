@@ -65,6 +65,8 @@ Construite en tranches verticales, dans cet ordre :
   - ✅ *Consommation* : **débit d'1 crédit à l'envoi** (atomique conditionnel) ; solde nul → l'enveloppe reste en brouillon (`credits_insuffisants`). Prouvé (les preuves boucle/vérification débitent un crédit).
   - ⏳ *Suite* : branchement d'un vrai fournisseur Mobile Money + **webhook signé / réconciliation** ; écran de recharge (UI).
 - **S6 · Archive personnelle.** Liste, consultation, téléchargement du dossier de preuve.
+  - ✅ *Liste (backend + écran)* : `GET /v1/enveloppes` (session) → mes enveloppes, **cloisonné** (chacun ne voit que les siennes) ; section « Mes documents » dans l'espace émetteur (statut, lien Vérifier, liens de signature). Port `DepotArchive` + adaptateurs mémoire/Postgres. Prouvé (`verifier:boucle`).
+  - ⏳ *Suite* : **téléchargement du dossier de preuve** (persister le dossier au scellement) ; consultation détaillée.
 
 **Sortie de V1 (critères)** : une PME réelle s'inscrit, envoie, fait signer un invité, obtient un document scellé + preuve ; n'importe qui vérifie publiquement ; le paiement fonctionne. Interface mobile d'abord, 3G acceptable. *Dossier APDP et localisation validés avant d'ouvrir au public.*
 

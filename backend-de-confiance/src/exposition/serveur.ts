@@ -270,6 +270,14 @@ export function construireServeur(c: Composition): FastifyInstance {
     }
   });
 
+  // Mon archive : les enveloppes que j'ai créées (session requise).
+  app.get("/v1/enveloppes", async (req, reply) => {
+    const s = exigerSession(req, reply);
+    if (!s) return;
+    const enveloppes = await c.depotArchive.mesEnveloppes(s.sub);
+    return reply.send({ enveloppes });
+  });
+
   app.get("/v1/enveloppes/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
     const agg = await c.depot.charger(id);

@@ -1,5 +1,6 @@
 import type {
   EnveloppeDetail,
+  EnveloppeResume,
   Pack,
   RapportVerification,
   SignataireACreer,
@@ -155,6 +156,18 @@ export async function creerEnveloppe(payload: {
 
 export async function envoyer(id: string, documentBase64: string, acteur: string): Promise<{ statut: string }> {
   return poster(`/v1/enveloppes/${encodeURIComponent(id)}/envoi`, { documentBase64, acteur });
+}
+
+/** Mon archive : les enveloppes que j'ai créées. */
+export async function mesEnveloppes(): Promise<EnveloppeResume[]> {
+  let rep: Response;
+  try {
+    rep = await fetch("/v1/enveloppes", { headers: entetes(false) });
+  } catch {
+    throw new ErreurApi("reseau", "Impossible de joindre le service.");
+  }
+  if (!rep.ok) throw await lireErreur(rep);
+  return ((await rep.json()) as { enveloppes: EnveloppeResume[] }).enveloppes;
 }
 
 export async function lireSolde(): Promise<Solde> {

@@ -18,7 +18,9 @@ import { OperateurMobileMoneyLocalDev } from "../adaptateurs/operateur-mobile-mo
 import { DepotCreditsMemoire, DepotPaiementsMemoire } from "../adaptateurs/depot-credits-memoire";
 import { DepotCreditsPostgres, DepotPaiementsPostgres } from "../adaptateurs/depot-credits-postgres";
 import { SessionJwtLocalDev } from "../adaptateurs/session-jwt-local-dev";
+import { DepotArchivePostgres } from "../adaptateurs/depot-archive-postgres";
 import type {
+  DepotArchive,
   DepotCredits,
   DepotEnveloppes,
   DepotPaiements,
@@ -37,6 +39,7 @@ export interface Composition {
   depot: DepotEnveloppes;
   depotUtilisateurs: DepotUtilisateurs;
   depotVerification: DepotVerification;
+  depotArchive: DepotArchive;
   depotCredits: DepotCredits;
   depotPaiements: DepotPaiements;
   operateurMM: OperateurMobileMoney;
@@ -84,6 +87,7 @@ export function compositionDev(): Composition {
   return {
     depot: enveloppes,
     depotVerification: enveloppes,
+    depotArchive: enveloppes,
     // Les crédits de bienvenue vont dans le registre partagé (visibles au solde/débit).
     depotUtilisateurs: new DepotUtilisateursMemoire(credits),
     depotCredits: credits,
@@ -109,6 +113,7 @@ export function compositionPostgres(pool?: Pool): Composition {
     depot: new DepotEnveloppesPostgres(p),
     depotUtilisateurs: new DepotUtilisateursPostgres(p),
     depotVerification: new DepotVerificationPostgres(p),
+    depotArchive: new DepotArchivePostgres(p),
     depotCredits: new DepotCreditsPostgres(p),
     depotPaiements: new DepotPaiementsPostgres(p),
     ...servicesCommuns(),
